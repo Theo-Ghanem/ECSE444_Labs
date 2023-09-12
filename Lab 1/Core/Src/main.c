@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -25,6 +26,7 @@
 #include "arm_math.h"
 
 #include "lab1math.h"
+#define Q28QUARTER
 
 /* USER CODE END Includes */
 
@@ -90,11 +92,38 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
+
+  //====================================================
+  //first part of lab
   // define our variables and array
-  float max = 0;
-  uint32_t maxIndex;
-  // the max is 88.49 at index 5
-  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
+//  float max = 0;
+//  uint32_t maxIndex;
+//  // the max is 88.49 at index 5
+//  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
+  //====================================================
+
+  float32_t input = 1234;
+  float32_t* output = malloc(sizeof(float32_t));
+
+#define THRESH 0.00001
+
+void sqrt(float32_t input, float32_t *output){
+	float32_t x = input;
+	float32_t root;
+
+	while(1){
+		root = 0.5 * (x + (input / x));
+
+		if(root - x < THRESH && x - root < THRESH)
+			break;
+
+		x = root;
+	}
+
+	*output=root;
+}
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -104,10 +133,35 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ITM_Port32(31) = 1;
-	  	  for (uint32_t i=0; i<1000; i++)
-	  		arm_max_f32(&array, 10, &max, &maxIndex);
-	  	  ITM_Port32(31) = 2;
+
+  //====================================================
+  //first part of lab
+//	  ITM_Port32(31) = 1;
+//	  	  for (uint32_t i=0; i<1000; i++)
+//	  		arm_max_f32(&array, 10, &max, &maxIndex);
+//	  	  ITM_Port32(31) = 2;
+  //====================================================
+
+//=============CMSIS-DSP=======================================
+//	  ITM_Port32(31) = 1;
+//	  for (uint32_t i=0; i<1000; i++)
+//		  arm_sqrt_f32(input, output);
+//	  ITM_Port32(31) = 2;
+//=============CMSIS-DSP=======================================
+
+//=============Cortex-M4 FPU=======================================
+  ITM_Port32(31) = 1;
+  for (uint32_t i=0; i<1000; i++)
+	  asmSqrt(input, output);
+  ITM_Port32(31) = 2;
+//=============Cortex-M4 FPU=======================================
+
+//=============Newton-Raphson Method=======================================
+//	ITM_Port32(31) = 1;
+//	for (uint32_t i=0; i<1000; i++)
+//		sqrt(input, output);
+//	ITM_Port32(31) = 2;
+//=============Newton-Raphson Method=======================================
 
   }
   /* USER CODE END 3 */

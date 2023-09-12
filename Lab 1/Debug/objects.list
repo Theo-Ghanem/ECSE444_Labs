@@ -1,3 +1,4 @@
+"./Core/Src/asmSqrt.o"
 "./Core/Src/asmmax.o"
 "./Core/Src/cmax.o"
 "./Core/Src/main.o"

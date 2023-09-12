@@ -11,6 +11,8 @@
 
 void cMax(float *array, uint32_t size, float *max, uint32_t *maxIndex);
 extern void asmMax(float *array, uint32_t size, float *max, uint32_t *maxIndex);
+extern void cSqrt(float32_t input,float32_t* output);
+extern void asmSqrt(float32_t input,float32_t* output);
 
 
 #endif /* INC_LAB1MATH_H_ */
