@@ -2,7 +2,7 @@
  * asmSqrt.s
  *
  *  Created on: Sep 12, 2023
- *      Author: Theo
+ *      Author: Theo & Philippe
  */
 
  // unified indicates that we're using a mix of different ARM instructions,
@@ -13,7 +13,7 @@
 .global asmTranscendental
 
 .section .data
-my_float_constant: .float 0.000001
+THRESH: .float 0.000001
 // .section marks a new section in assembly. .text identifies it as source code;
 // .rodata marks it as read-only, setting it to go in FLASH, not SRAM
 .section .text.rodata
@@ -46,7 +46,7 @@ my_float_constant: .float 0.000001
 	VMOV S4, S0 // X
 	VMOV S5, S1 // omega
 	VMOV S6, S2 //phi
-	MOV R4, R0 //output address
+	MOV R4, R0  //output address
 
 
 convergence_loop:
@@ -76,12 +76,12 @@ convergence_loop:
 	VSUB.F32 S11, S10, S4 //if x1 - x0
 	VABS.F32 S11, S11
 
-	ldr r6, =my_float_constant       // Load the constant 0.00001 into S16
+	ldr r6, =THRESH   // Load the constant 0.00001 into S12
 	vldr.f32 S12, [r6]
-	VCMP.f32 S11, S12       // Compare S11 to S16
-	VMRS APSR_nzcv, FPSCR
+	VCMP.f32 S11, S12       // Compare S11(result) to S12(threshold)
+	VMRS APSR_nzcv, FPSCR //done to get the condition flag from VCMP
 
-	BLT end_convergence_loop
+	BLT end_convergence_loop //if result less than thresh
 
 	VMOV S4, S10
 	B convergence_loop
@@ -89,7 +89,6 @@ convergence_loop:
 end_convergence_loop:
 
 	VSTR S10, [R4]
-
 	POP {R4, LR}
  	BX LR
 
