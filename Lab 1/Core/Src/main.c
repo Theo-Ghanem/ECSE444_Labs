@@ -102,26 +102,10 @@ int main(void)
 //  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
   //====================================================
 
-  float32_t input = 1234;
+  float32_t input = 0.5;
+  float32_t omega = 2;
+  float32_t phi = 4;
   float32_t* output = malloc(sizeof(float32_t));
-
-#define THRESH 0.00001
-
-void sqrt(float32_t input, float32_t *output){
-	float32_t x = input;
-	float32_t root;
-
-	while(1){
-		root = 0.5 * (x + (input / x));
-
-		if(root - x < THRESH && x - root < THRESH)
-			break;
-
-		x = root;
-	}
-
-	*output=root;
-}
 
 
   /* USER CODE END 2 */
@@ -150,18 +134,32 @@ void sqrt(float32_t input, float32_t *output){
 //=============CMSIS-DSP=======================================
 
 //=============Cortex-M4 FPU=======================================
-  ITM_Port32(31) = 1;
-  for (uint32_t i=0; i<1000; i++)
-	  asmSqrt(input, output);
-  ITM_Port32(31) = 2;
+//  ITM_Port32(31) = 1;
+//  for (uint32_t i=0; i<1000; i++)
+//	  asmSqrt(input, output);
+//  ITM_Port32(31) = 2;
 //=============Cortex-M4 FPU=======================================
 
 //=============Newton-Raphson Method=======================================
 //	ITM_Port32(31) = 1;
 //	for (uint32_t i=0; i<1000; i++)
-//		sqrt(input, output);
+//		cSqrt(input, output);
 //	ITM_Port32(31) = 2;
 //=============Newton-Raphson Method=======================================
+
+//=============Transcendental Functions in C =======================================
+//	ITM_Port32(31) = 1;
+//		for (uint32_t i=0; i<1000; i++)
+//			cTranscendental(input, omega, phi, output);
+//	ITM_Port32(31) = 2;
+//=============Transcendental Functions in C =======================================
+
+//=============Transcendental Functions in arm =======================================
+	ITM_Port32(31) = 1;
+		for (uint32_t i=0; i<1000; i++)
+			asmTranscendental(input, omega, phi, output);
+	ITM_Port32(31) = 2;
+//=============Transcendental Functions in arm =======================================
 
   }
   /* USER CODE END 3 */
