@@ -96,10 +96,10 @@ int main(void)
   //====================================================
   //first part of lab
   // define our variables and array
-//  float max = 0;
-//  uint32_t maxIndex;
-//  // the max is 88.49 at index 5
-//  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
+  float max = 0;
+  uint32_t maxIndex;
+  // the max is 88.49 at index 5
+  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
   //====================================================
 
   // Assign values to input parameters
@@ -119,13 +119,27 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-  //====================================================
-  //first part of lab
-//	  ITM_Port32(31) = 1;
-//	  	  for (uint32_t i=0; i<1000; i++)
-//	  		arm_max_f32(&array, 10, &max, &maxIndex);
-//	  	  ITM_Port32(31) = 2;
-  //====================================================
+
+//=============MAX CMSIS-DSP=======================================
+	ITM_Port32(31) = 1;
+	for (uint32_t i=0; i<1000; i++)
+		cMax(&array, 10, &max, &maxIndex);
+	ITM_Port32(31) = 2;
+//=============MAX CMSIS-DSP=======================================
+
+//=============MAX CMSIS-DSP=======================================
+//	ITM_Port32(31) = 1;
+//	for (uint32_t i=0; i<1000; i++)
+//		asmmax(&array, 10, &max, &maxIndex);
+//	ITM_Port32(31) = 2;
+//=============MAX CMSIS-DSP=======================================
+
+//=============MAX CMSIS-DSP=======================================
+//	ITM_Port32(31) = 1;
+//	for (uint32_t i=0; i<1000; i++)
+//		arm_max_f32(&array, 10, &max, &maxIndex);
+//	ITM_Port32(31) = 2;
+//=============MAX CMSIS-DSP=======================================
 
 //=============CMSIS-DSP=======================================
 //	  ITM_Port32(31) = 1;
@@ -156,10 +170,10 @@ int main(void)
 //=============Transcendental Functions in C =======================================
 
 //=============Transcendental Functions in arm =======================================
-	ITM_Port32(31) = 1;
-		for (uint32_t i=0; i<1000; i++)
-			asmTranscendental(input, omega, phi, output);
-	ITM_Port32(31) = 2;
+//	ITM_Port32(31) = 1;
+//		for (uint32_t i=0; i<1000; i++)
+//			asmTranscendental(input, omega, phi, output);
+//	ITM_Port32(31) = 2;
 //=============Transcendental Functions in arm =======================================
 
   }
