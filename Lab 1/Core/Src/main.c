@@ -102,6 +102,7 @@ int main(void)
 //  float array[10] = {48.21, 79.48, 24.27, 28.82, 78.24, 88.49, 31.19, 5.52, 82.70, 77.73};
   //====================================================
 
+  // Assign values to input parameters
   float32_t input = 0.5;
   float32_t omega = 2;
   float32_t phi = 4;

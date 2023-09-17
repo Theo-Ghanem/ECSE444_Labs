@@ -26,7 +26,7 @@
 
 
 asmSqrt:
-  VSQRT.F32 S1, S0          // Calculate the square root and store it in S0
+  VSQRT.F32 S1, S0          // Calculate the square root and store it in S1
   VSTR    S1, [R0]          // Store the result in the memory location specified by R1
   BX LR
 

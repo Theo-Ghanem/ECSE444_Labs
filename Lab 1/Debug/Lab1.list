@@ -31,25 +31,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
  13 .debug_line   00006321  00000000  00000000  00020148  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_line_str 000000e4  00000000  00000000  00026469  2**0
+ 14 .debug_line_str 00000091  00000000  00000000  00026469  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_info   0000880a  00000000  00000000  0002654d  2**0
+ 15 .debug_info   0000880a  00000000  00000000  000264fa  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_abbrev 000015d5  00000000  00000000  0002ed57  2**0
+ 16 .debug_abbrev 000015d5  00000000  00000000  0002ed04  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_aranges 000005f0  00000000  00000000  00030330  2**3
+ 17 .debug_aranges 000005f0  00000000  00000000  000302e0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000f9f33  00000000  00000000  00030920  2**0
+ 18 .debug_str    000f9ee0  00000000  00000000  000308d0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_rnglists 000003f8  00000000  00000000  0012a853  2**0
+ 19 .debug_rnglists 000003f8  00000000  00000000  0012a7b0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .debug_macro  00001304  00000000  00000000  0012ac4b  2**0
+ 20 .debug_macro  00001304  00000000  00000000  0012aba8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_frame  00001744  00000000  00000000  0012bf50  2**2
+ 21 .debug_frame  00001744  00000000  00000000  0012beac  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_loc    000001f4  00000000  00000000  0012d694  2**0
+ 22 .debug_loc    000001f4  00000000  00000000  0012d5f0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 23 .debug_ranges 00000020  00000000  00000000  0012d888  2**0
+ 23 .debug_ranges 00000020  00000000  00000000  0012d7e4  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -96,7 +96,7 @@ Disassembly of section .text:
  8000202:	eef0 2a60 	vmov.f32	s5, s1
 	VMOV S6, S2 //phi
  8000206:	eeb0 3a41 	vmov.f32	s6, s2
-	MOV R4, R0 //output address
+	MOV R4, R0  //output address
  800020a:	4604      	mov	r4, r0
 
 0800020c <convergence_loop>:
@@ -147,16 +147,16 @@ convergence_loop:
 	VABS.F32 S11, S11
  8000250:	eef0 5ae5 	vabs.f32	s11, s11
 
-	ldr r6, =my_float_constant       // Load the constant 0.00001 into S16
+	ldr r6, =THRESH   // Load the constant 0.00001 into S12
  8000254:	4e07      	ldr	r6, [pc, #28]	; (8000274 <end_convergence_loop+0xa>)
 	vldr.f32 S12, [r6]
  8000256:	ed96 6a00 	vldr	s12, [r6]
-	VCMP.f32 S11, S12       // Compare S11 to S16
+	VCMP.f32 S11, S12       // Compare S11(result) to S12(threshold)
  800025a:	eef4 5a46 	vcmp.f32	s11, s12
-	VMRS APSR_nzcv, FPSCR
+	VMRS APSR_nzcv, FPSCR //done to get the condition flag from VCMP
  800025e:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
 
-	BLT end_convergence_loop
+	BLT end_convergence_loop //if result less than thresh
  8000262:	db02      	blt.n	800026a <end_convergence_loop>
 
 	VMOV S4, S10
@@ -170,12 +170,11 @@ end_convergence_loop:
 
 	VSTR S10, [R4]
  800026a:	ed84 5a00 	vstr	s10, [r4]
-
 	POP {R4, LR}
  800026e:	e8bd 4010 	ldmia.w	sp!, {r4, lr}
  	BX LR
  8000272:	4770      	bx	lr
-	ldr r6, =my_float_constant       // Load the constant 0.00001 into S16
+	ldr r6, =THRESH   // Load the constant 0.00001 into S12
  8000274:	20000000 	.word	0x20000000
 
 08000278 <main>:

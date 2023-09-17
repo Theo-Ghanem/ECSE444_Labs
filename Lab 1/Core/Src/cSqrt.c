@@ -16,14 +16,18 @@ void cSqrt(float32_t input, float32_t *output){
 	float32_t root;
 
 	while(1){
+		// Compute new guess
 		root = 0.5 * (x + (input / x));
 
+		// Check if new and previous results are close enough and break
 		if(root - x < THRESH && x - root < THRESH)
 			break;
 
+		// Set the new guess as previous guess and repeat
 		x = root;
 	}
 
+	// Store the result in output pointer
 	*output=root;
 }
 
