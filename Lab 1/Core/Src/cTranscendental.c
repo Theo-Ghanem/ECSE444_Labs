@@ -2,7 +2,7 @@
  * cTranscendental.c
  *
  *  Created on: Sep 14, 2023
- *      Author: Theo
+ *      Author: Theo & Philippe
  */
 
 #include "main.h"

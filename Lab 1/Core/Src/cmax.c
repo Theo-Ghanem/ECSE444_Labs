@@ -2,7 +2,7 @@
  * cmax.c
  *
  *  Created on: Sep 11, 2023
- *      Author: Theo
+ *      Author: Theo & Philippe
  */
 #include "main.h"
 

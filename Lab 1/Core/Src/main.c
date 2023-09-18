@@ -121,10 +121,10 @@ int main(void)
 
 
 //=============MAX CMSIS-DSP=======================================
-	ITM_Port32(31) = 1;
-	for (uint32_t i=0; i<1000; i++)
-		cMax(&array, 10, &max, &maxIndex);
-	ITM_Port32(31) = 2;
+//	ITM_Port32(31) = 1;
+//	for (uint32_t i=0; i<1000; i++)
+//		cMax(&array, 10, &max, &maxIndex);
+//	ITM_Port32(31) = 2;
 //=============MAX CMSIS-DSP=======================================
 
 //=============MAX CMSIS-DSP=======================================
@@ -156,10 +156,10 @@ int main(void)
 //=============Cortex-M4 FPU=======================================
 
 //=============Newton-Raphson Method=======================================
-//	ITM_Port32(31) = 1;
-//	for (uint32_t i=0; i<1000; i++)
-//		cSqrt(input, output);
-//	ITM_Port32(31) = 2;
+	ITM_Port32(31) = 1;
+	for (uint32_t i=0; i<1000; i++)
+		cSqrt(input, output);
+	ITM_Port32(31) = 2;
 //=============Newton-Raphson Method=======================================
 
 //=============Transcendental Functions in C =======================================
