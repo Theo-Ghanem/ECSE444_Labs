@@ -2,7 +2,7 @@
  * cSqrt.c
  *
  *  Created on: Sep 14, 2023
- *      Author: Theo
+ *      Author: Theo & Philippe
  */
 
 #include "main.h"
@@ -12,6 +12,12 @@
 #define THRESH 0.000001
 
 void cSqrt(float32_t input, float32_t *output){
+
+	if (input <0){
+		*output=-1;
+		return;
+	}
+
 	float32_t x = input;
 	float32_t root;
 

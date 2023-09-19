@@ -14,6 +14,7 @@
 
 .section .data
 THRESH: .float 0.000001
+float_nan: .float NaN
 // .section marks a new section in assembly. .text identifies it as source code;
 // .rodata marks it as read-only, setting it to go in FLASH, not SRAM
 .section .text.rodata
@@ -41,6 +42,7 @@ THRESH: .float 0.000001
 //
 //	*output = x1;
 //}
+
  asmTranscendental:
 	PUSH {R4, LR}
 	VMOV S4, S0 // X
@@ -48,8 +50,12 @@ THRESH: .float 0.000001
 	VMOV S6, S2 //phi
 	MOV R4, R0  //output address
 
+	MOV R5, #0
 
 convergence_loop:
+	CMP R5, #2000
+	BEQ divergence
+
 	VMOV S7, S6 			// copy over phi
 	VMLA.F32 S7, S4, S5 	// multiply and add : (omega * x0 + phi)
 	VMOV S0, S7 			// Move (omega * x0 + phi) to S0
@@ -84,7 +90,12 @@ convergence_loop:
 	BLT end_convergence_loop // if result less than thresh break out of loop
 
 	VMOV S4, S10			// Store new computation as input
+	ADD R5, R5, #1
 	B convergence_loop		// Go back to beginning of loop
+
+divergence:
+	LDR R5, =float_nan
+	VLDR S10, [R5]
 
 end_convergence_loop:
 

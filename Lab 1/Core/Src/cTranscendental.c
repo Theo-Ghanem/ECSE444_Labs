@@ -15,16 +15,22 @@ void cTranscendental(float32_t x, float32_t omega, float32_t phi, float32_t *out
 	float32_t x0 = x;
 	float32_t x1;
 
+	int i = 0;
 	while(1){
+		if(i == 2000){
+			x1 = 0.0 / 0.0;
+			break;
+		}
 		// Compute the new guess
 		x1 = x0 - (x0 * x0 - arm_cos_f32(omega * x0 + phi)) / (2 * x0 + omega * arm_sin_f32(omega * x0 + phi));
 
 		// Check if new and previous results are close enough and break
-		if(x1 - x0 < THRESH && x1 - x0 < THRESH)
+		if(x1 - x0 < THRESH && x0 - x1 < THRESH)
 			break;
 
 		// Set the new guess as previous guess and repeat
 		x0 = x1;
+		i++;
 	}
 
 	// Store the result in output pointer

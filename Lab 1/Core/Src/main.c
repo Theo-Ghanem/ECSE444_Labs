@@ -163,17 +163,17 @@ int main(void)
 //=============SQRT Newton-Raphson Method=======================================
 
 //=============Transcendental Functions in C =======================================
-//	ITM_Port32(31) = 1;
-//		for (uint32_t i=0; i<1000; i++)
-//			cTranscendental(input, omega, phi, output);
-//	ITM_Port32(31) = 2;
+	ITM_Port32(31) = 1;
+		for (uint32_t i=0; i<1000; i++)
+			cTranscendental(input, omega, phi, output);
+	ITM_Port32(31) = 2;
 //=============Transcendental Functions in C =======================================
 
 //=============Transcendental Functions in arm =======================================
-	ITM_Port32(31) = 1;
-		for (uint32_t i=0; i<1000; i++)
-			asmTranscendental(input, omega, phi, output);
-	ITM_Port32(31) = 2;
+//	ITM_Port32(31) = 1;
+//		for (uint32_t i=0; i<1000; i++)
+//			asmTranscendental(input, omega, phi, output);
+//	ITM_Port32(31) = 2;
 //=============Transcendental Functions in arm =======================================
 
   }

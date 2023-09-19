@@ -26,7 +26,15 @@
 
 
 asmSqrt:
+  VCMP.F32 S0, #0
+  VMRS APSR_nzcv, FPSCR 	// Done to get the condition flag from VCMP
+  BMI negNumber
   VSQRT.F32 S1, S0          // Calculate the square root and store it in S1
+  B done
+negNumber:
+  VMOV S1, #-1
+
+ done:
   VSTR    S1, [R0]          // Store the result in the memory location specified by R1
   BX LR
 
