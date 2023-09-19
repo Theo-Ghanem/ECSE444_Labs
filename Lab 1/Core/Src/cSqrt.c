@@ -17,6 +17,10 @@ void cSqrt(float32_t input, float32_t *output){
 		*output=-1;
 		return;
 	}
+	if (input == 0){
+		*output=0;
+		return;
+	}
 
 	float32_t x = input;
 	float32_t root;

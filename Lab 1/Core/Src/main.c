@@ -103,8 +103,8 @@ int main(void)
   //====================================================
 
   // Assign values to input parameters
-  float32_t input = 0.5;
-  float32_t omega = 2;
+  float32_t input = 92;
+  float32_t omega = 10;
   float32_t phi = 4;
   float32_t* output = malloc(sizeof(float32_t));
 
