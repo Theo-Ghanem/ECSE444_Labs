@@ -89,13 +89,20 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
-
+  GPIO_PinState pbState;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  pbState = HAL_GPIO_ReadPin(push_button_GPIO_Port, push_button_Pin);
+
+	  if(pbState == GPIO_PIN_RESET){
+		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+	  } else {
+		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
