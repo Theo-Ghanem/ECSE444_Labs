@@ -46,8 +46,6 @@ ADC_HandleTypeDef hadc1;
 DAC_HandleTypeDef hdac1;
 
 /* USER CODE BEGIN PV */
-ADC_ChannelConfTypeDef vrefConfig;
-ADC_ChannelConfTypeDef tempConfig;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,8 +102,11 @@ int main(void)
 
   // PART 2
   // ==========================================================================
-  // HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
-  // HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
+  // // Start DAC channels
+  // HAL_DAC_Start(&hdac1, DAC_CHANNEL_1); // Pin D7
+  // HAL_DAC_Start(&hdac1, DAC_CHANNEL_2); // Pin D13
+  //
+  // // Variables to hold signals values
   // int tri_direction = 1;
   // uint8_t tri = 0;
   // uint8_t saw = 0;
@@ -114,27 +115,58 @@ int main(void)
   // ==========================================================================
 
 
-  // PART 3
+  // PART 3 & 4
   // ==========================================================================
-  	 uint32_t vrefVoltage;
-  	 uint32_t tempVoltage;
+     // Variables for voltages reading form ADC
+     uint32_t vrefVoltage;
+     uint32_t tempVoltage;
 
 
-  	 uint32_t computeTemperature(uint32_t vrefVoltage, uint32_t tempVoltage){
-  		 // Get calibration values
-  		 int32_t VREFINT_CAL = (int32_t) *((uint16_t*) (0x1FFF75AAUL));
-  		 int32_t TS_CAL2 = (int32_t) *((uint16_t*) (0x1FFF75CAUL));
-  		 int32_t TS_CAL1 = (int32_t) *((uint16_t*) (0x1FFF75A8UL));
+     // This function computes actual temperature in celsius given the Vref and
+     // temperature sensor voltage readings
+     uint32_t computeTemperature(uint32_t vrefVoltage, uint32_t tempVoltage){
+    	 // Get calibration values
+         int32_t VREFINT_CAL = (int32_t) *((uint16_t*) (0x1FFF75AAUL));
+     	 int32_t TS_CAL2 = (int32_t) *((uint16_t*) (0x1FFF75CAUL));
+     	 int32_t TS_CAL1 = (int32_t) *((uint16_t*) (0x1FFF75A8UL));
 
-  		 float VREF = 3000.0 * (float) VREFINT_CAL / ((float) vrefVoltage);
-  		 float tsData = ((float)tempVoltage * VREF / 3000.0);
-  		 int32_t numerator = 110 - 30;
-  		 int32_t denominator = TS_CAL2 - TS_CAL1;
+     	 float VREF = 3000.0 * (float) VREFINT_CAL / ((float) vrefVoltage);
+     	 float tsData = ((float)tempVoltage * VREF / 3000.0);
+     	 int32_t numerator = 110 - 30;
+     	 int32_t denominator = TS_CAL2 - TS_CAL1;
 
-  		 float scalar = ((float) numerator) / (/*VREF */ ((float) denominator));
+     	 float scalar = ((float) numerator) / (/*VREF */ ((float) denominator));
 
-  		 return scalar * (tsData - TS_CAL1) + 30;
+     	 return scalar * (tsData - TS_CAL1) + 30;
+     }
+  // ==========================================================================
+
+
+  // PART 4
+  // ==========================================================================
+  	 int tempMode = 0;
+  	 GPIO_PinState pbState;
+
+  	 // Returns 1 if PB was pushed down, 0 otherwise
+  	 int pollPbPushDown(){
+  		GPIO_PinState newState = HAL_GPIO_ReadPin(push_button_GPIO_Port, push_button_Pin);
+  		int pushDown = 0;
+  		if(newState == GPIO_PIN_RESET && newState != pbState){
+  			pushDown = 1;
+  		}
+  		pbState = newState;
+  		return pushDown;
   	 }
+
+  	 // Variables to hold signal values
+  	 int wave = 0;
+  	 float32_t angle;
+  	 uint8_t saw = 0;
+  	 uint8_t tri = 0;
+  	 int tri_direction = 1;
+
+  	 // Start single DAC channel (D7)
+  	 HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   // ==========================================================================
   /* USER CODE END 2 */
 
@@ -144,50 +176,119 @@ int main(void)
   {
 	  // PART 1
 	  // ==========================================================================
-//	  pbState = HAL_GPIO_ReadPin(push_button_GPIO_Port, push_button_Pin);
-//
-//	  if(pbState == GPIO_PIN_RESET){
-//		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-//	  } else {
-//		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-//	  }
+	  // // Read PB state
+	  // pbState = HAL_GPIO_ReadPin(push_button_GPIO_Port, push_button_Pin);
+      //
+	  // // Write to LED depending on PB state
+	  // if(pbState == GPIO_PIN_RESET){
+	  //	 HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+  	  // } else {
+	  // 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+      // }
 	  // ==========================================================================
 
 
 	  // PART 2
 	  // ==========================================================================
+	  // // Send signal values to DAC channels
 	  // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, tri);
 	  // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sin);
+	  //
+	  // // Dummy for loop for frequency
 	  // for(int i = 0; i < 600; i++);
+	  //
+	  // // Increment signals by appropriate amount
 	  // saw += 15;
 	  // angle += 0.392699;
 	  // sin = (uint8_t) ((arm_sin_f32(angle) + 1) * 120);
-
-
 	  // if(tri_direction) tri += 30;
 	  // else tri -= 30;
-
+	  //
+	  // // Change triangular wave direction if needed
 	  // if(tri == 240) tri_direction = 0;
 	  // else if(tri == 0) tri_direction = 1;
-
-	  // if(saw == 240) saw = 0;
 	  // ==========================================================================
+
 
 	  // PART 3
 	  // ==========================================================================
-	  //if(HAL_ADC_ConfigChannel(&hadc1, &vrefConfig) != HAL_OK) return -1;
-	  HAL_ADC_Start(&hadc1);
-	  if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
-	  vrefVoltage = HAL_ADC_GetValue(&hadc1);
-
-	  //if(HAL_ADC_ConfigChannel(&hadc1, &tempConfig) != HAL_OK) return -1;
-	  HAL_ADC_Start(&hadc1);
-	  if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
-	  tempVoltage = HAL_ADC_GetValue(&hadc1);
-
-	  uint32_t temp = computeTemperature(vrefVoltage, tempVoltage);
+	  // // Read Vref voltage
+	  // HAL_ADC_Start(&hadc1);
+	  // if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+	  // vrefVoltage = HAL_ADC_GetValue(&hadc1);
+	  //
+	  // // Read temperature sensor voltage
+	  // HAL_ADC_Start(&hadc1);
+	  // if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+	  // tempVoltage = HAL_ADC_GetValue(&hadc1);
+	  //
+	  // // Compute actual temperature in celsius
+	  // uint32_t temp = computeTemperature(vrefVoltage, tempVoltage);
 	  // ==========================================================================
 
+
+	  // PART 4
+	  // ==========================================================================
+	  	 if(pollPbPushDown()){
+	  		 // Invert temp mode
+	  		 tempMode = !tempMode;
+
+	  		 if(!tempMode){
+	  			// Set LED to off
+	  			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+	  		    // Cycle through triangular, sawtooth and sine wave.
+	  			wave++;
+	  			if(wave == 3) wave = 0;
+	  		 } else {
+	  			// Set LED to on
+	  			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+	  		 }
+	  	 }
+
+	  	 uint8_t signal;
+
+	  	 if(tempMode){
+	  		// Get temperature reading
+	  		HAL_ADC_Start(&hadc1);
+		    if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+	  		vrefVoltage = HAL_ADC_GetValue(&hadc1);
+
+	  		HAL_ADC_Start(&hadc1);
+	  		if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+	  		tempVoltage = HAL_ADC_GetValue(&hadc1);
+
+	  		uint32_t temp = computeTemperature(vrefVoltage, tempVoltage);
+
+	  		// Increment angle depending on temp value
+	  		angle += (float) temp * 0.392699 / 30;
+	  		signal = (uint8_t) ((arm_sin_f32(angle) + 1) * 120);
+	  	 } else {
+	  		switch(wave){
+	  			case 0: // Case sine wave
+					angle += 0.392699;
+					signal = (uint8_t) ((arm_sin_f32(angle) + 1) * 120);
+					break;
+	  			case 1: // Case sawtooth wave
+	  				saw += 15;
+	  				signal = saw;
+	  				break;
+	  			default: // Case triangular wave
+	  				if(tri_direction) tri += 30;
+	  				else tri -= 30;
+
+	  				if(tri == 240) tri_direction = 0;
+	  				else if(tri == 0) tri_direction = 1;
+
+	  				signal = tri;
+	  		}
+
+	  		// Dummy for loop for frequency
+	  		for(int i = 0; i < 600; i++);
+	  	 }
+
+	  	 // Send signal to speaker
+	  	 HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, signal);
+	  // ==========================================================================
 
     /* USER CODE END WHILE */
 
@@ -309,10 +410,6 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  tempConfig = sConfig;
-
-  vrefConfig = sConfig;
-  vrefConfig.Channel = ADC_CHANNEL_VREFINT;
   /* USER CODE END ADC1_Init 2 */
 
 }
