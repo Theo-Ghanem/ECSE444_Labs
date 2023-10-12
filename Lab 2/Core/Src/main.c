@@ -176,26 +176,26 @@ int main(void)
   {
 	  // PART 1
 	  // ==========================================================================
-	   // Read PB state
+//	   // Read PB state
 //	   pbState = HAL_GPIO_ReadPin(push_button_GPIO_Port, push_button_Pin);
 //
 //	   // Write to LED depending on PB state
 //	   if(pbState == GPIO_PIN_RESET){
 //	  	 HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 //  	   } else {
-//	   	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+//	   	 HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 //       }
 	  // ==========================================================================
 
 
 	  // PART 2
 	  // ==========================================================================
-//	   // Send signal values to DAC channels
-//	   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, saw); // D7
-//	   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sin); // D13
+	   // Send signal values to DAC channels
+//	   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, tri * 0.75); // D7
+//	   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_8B_R, sin * 0.75); // D13
 //
 //	   // Dummy for loop for frequency
-//	   for(int i = 0; i < 200; i++);
+//	   for(int i = 0; i < 100; i++);
 //
 //	   // Increment signals by appropriate amount
 //	   saw += 5;
@@ -216,12 +216,12 @@ int main(void)
 	  // ==========================================================================
 //	   // Read Vref voltage
 //	   HAL_ADC_Start(&hadc1);
-//	   if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+//	   if(HAL_ADC_PollForConversion(&hadc1, 200) != HAL_OK) continue;
 //	   vrefVoltage = HAL_ADC_GetValue(&hadc1);
 //
 //	   // Read temperature sensor voltage
 //	   HAL_ADC_Start(&hadc1);
-//	   if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+//	   if(HAL_ADC_PollForConversion(&hadc1, 200) != HAL_OK) continue;
 //	   tempVoltage = HAL_ADC_GetValue(&hadc1);
 //
 //	   // Compute actual temperature in celsius
@@ -252,11 +252,11 @@ int main(void)
 	  	 if(tempMode){
 	  		// Get temperature reading
 	  		HAL_ADC_Start(&hadc1);
-		    if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+		    if(HAL_ADC_PollForConversion(&hadc1, 200) != HAL_OK) continue;
 	  		vrefVoltage = HAL_ADC_GetValue(&hadc1);
 
 	  		HAL_ADC_Start(&hadc1);
-	  		if(HAL_ADC_PollForConversion(&hadc1, 10000) != HAL_OK) continue;
+	  		if(HAL_ADC_PollForConversion(&hadc1, 200) != HAL_OK) continue;
 	  		tempVoltage = HAL_ADC_GetValue(&hadc1);
 
 	  		uint32_t temp = computeTemperature(vrefVoltage, tempVoltage);
@@ -286,11 +286,11 @@ int main(void)
 	  		}
 
 	  		// Dummy for loop for frequency
-	  		for(int i = 0; i < 2000; i++);
+	  		for(int i = 0; i < 125; i++);
 	  	 }
 
 	  	 // Send signal to speaker
-	  	 HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, signal);
+	  	 HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, signal * 0.75);
 	  // ==========================================================================
 
     /* USER CODE END WHILE */
