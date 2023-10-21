@@ -37,6 +37,13 @@
 uint32_t micBuffer[BUFFER_SIZE];
 uint16_t noteIndex =0;
 
+#define NUM_SAMPLES 1000
+#define AMPLITUDE 1.0
+#define FREQUENCY 1000.0 //1KHz
+#define SAMPLING_RATE 1000.0
+
+double sineWave[NUM_SAMPLES];
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,23 +76,30 @@ static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DFSDM1_Init(void);
 /* USER CODE BEGIN PFP */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == BTN_Pin){
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Toggle the LED state
+	}
+}
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
-//	if(htim == &htim2){
-//		HAL_DAC_SetValue (&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sineWave[noteIndex]);
-//
-//		noteIndex = (noteIndex + 1) % 256;
-//	}
+	if(htim == &htim2){
+		HAL_DAC_SetValue (&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sineWave[noteIndex]);
+		noteIndex = (noteIndex + 1) % 256;//increment and ensure that the index wraps around when it reaches 256
+	}
 }
 
-void HAL_GPIO_EXTI_CALLBACK(uint16_t,GPIO_Pin){
-	HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE)
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE);
 }
 
-void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef * ){
-	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_L);
-	HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
-	noteIndex=0;
-}
+//void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef * ){
+//	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_L);
+//	HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
+//	noteIndex=0;
+//}
 
 
 /* USER CODE END PFP */
@@ -103,6 +117,9 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+    for (int i = 0; i < NUM_SAMPLES; ++i) {
+    	sineWave[i] = AMPLITUDE * sin(2.0 * M_PI * FREQUENCY * i / SAMPLING_RATE);
+    }
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -398,7 +415,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
-HAL_TIM2_Base_Start_IT(&htim2);
+HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END TIM2_Init 2 */
 
 }
@@ -443,11 +460,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : BTN_Pin */
+  GPIO_InitStruct.Pin = BTN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(BTN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
