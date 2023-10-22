@@ -88,39 +88,60 @@ static void MX_TIM2_Init(void);
 static void MX_DFSDM1_Init(void);
 /* USER CODE BEGIN PFP */
 
-//PART 1 ======================================
+//==============Part 1: Driving DAC with Timer and Global Interrupt======================
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+//	if (GPIO_Pin == BTN_Pin){
+//		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
+//
+//		if (ledState == GPIO_PIN_SET) { // The LED is currently ON
+//			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED OFF
+//			playSound = 0;  // Stop Playing Sound
+//		} else { // The LED is currently OFF
+//			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
+//			playSound = 1;  // Set the flag to start generating sound
+//		}
+//	}
+//}
+//
+//void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
+//	if(htim == &htim2){
+//		if(playSound){
+//		angle += 0.130899;
+//		sine = (uint8_t)((arm_sin_f32(angle) + 1) * 120);
+//		// Output the sample to the DAC channel
+//		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sineWave[noteIndex]);
+//		noteIndex = (noteIndex + 1)%44;
+//		}
+//	}
+//}
+
+
+//=============Part 2: Driving DAC with Timer and DMA====================
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == BTN_Pin){
 		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
-
 		if (ledState == GPIO_PIN_SET) { // The LED is currently ON
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED OFF
-			playSound = 0;  // Stop Playing Sound
+			HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);  // Stop the DAC
 		} else { // The LED is currently OFF
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
-			playSound = 1;  // Set the flag to start generating sound
+            HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);  // Start the DAC
 		}
 	}
 }
 
-void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
-	if(htim == &htim2){
-		if(playSound){
-		angle += 0.130899;
-		sine = (uint8_t)((arm_sin_f32(angle) + 1) * 120);
-		// Output the sample to the DAC channel
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sineWave[noteIndex]);
-		noteIndex = (noteIndex + 1)%44;
-		}
-	}
-}
 
-//Part 2 ============
-
+//=============Part 3: DFSDM Microphone======================================
 //void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 //	if (GPIO_Pin == BTN_Pin){
-//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Toggle the LED state
-//		HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE);
+//		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
+//		if (ledState == GPIO_PIN_SET) { // The LED is currently ON
+//			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED OFF
+//			HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);  // Stop the DAC
+//		} else { // The LED is currently OFF
+//			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
+//            HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);  // Start the DAC
+//		}
 //	}
 //}
 
@@ -167,6 +188,12 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
 //    }
 //}
 
+//=================Part 4: Putting it all together======================
+
+
+
+
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -209,8 +236,8 @@ int main(void)
   MX_TIM2_Init();
   MX_DFSDM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1); // Pin D7
-//  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &sineWave, BUFFER_SIZE, DAC_ALIGN_12B_R); //play back the recorded data
+//  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1); // Pin D7 //PART 1
+  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &sineWave, BUFFER_SIZE, DAC_ALIGN_12B_R); //play the sine wave with DMA //PART 2
 //  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_L); //play back the recorded data
 //  HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE);
 
