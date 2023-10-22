@@ -41,7 +41,6 @@ uint32_t micBuffer[BUFFER_SIZE];
 uint16_t noteIndex =0;
 uint8_t recording = 0; // Indicates whether recording is active
 uint8_t bufferFull = 0; //used to know when the recording buffer is full
-uint8_t playSound = 0;  // Flag to control sound generation
 
 
 //#define NUM_SAMPLES 4410
@@ -73,6 +72,8 @@ TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN PV */
 float angle =0;
 uint8_t sine =0;
+uint8_t playSound = 0;  // Flag to control sound generation
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,18 +89,26 @@ static void MX_DFSDM1_Init(void);
 //PART 1 ======================================
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == BTN_Pin){
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Toggle the LED state
-//		playSound = 1;  // Set the flag to start generating sound
+		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
 
+		if (ledState == GPIO_PIN_SET) { // The LED is currently ON
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED OFF
+			playSound = 0;  // Stop Playing Sound
+		} else { // The LED is currently OFF
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
+			playSound = 1;  // Set the flag to start generating sound
+		}
 	}
 }
 
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
 	if(htim == &htim2){
+		if(playSound){
 		angle += 0.130899;
 		sine = (uint8_t)((arm_sin_f32(angle) + 1) * 120);
 		// Output the sample to the DAC channel
 		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
+		}
 	}
 }
 
