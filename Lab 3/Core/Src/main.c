@@ -38,7 +38,7 @@
 #define BUFFER_SIZE 1024
 
 uint32_t micBuffer[BUFFER_SIZE];
-uint16_t noteIndex =0;
+//uint16_t noteIndex =0;
 uint8_t recording = 0; // Indicates whether recording is active
 uint8_t bufferFull = 0; //used to know when the recording buffer is full
 
@@ -48,7 +48,7 @@ uint8_t bufferFull = 0; //used to know when the recording buffer is full
 //#define FREQUENCY 1800.0 //1KHz
 //#define SAMPLING_RATE 44100.0
 //
-//uint32_t sineWave[NUM_SAMPLES];
+uint32_t sineWave[] ={ 100.0, 114.56011677350048, 128.80990993652378, 142.44566988758152, 155.17677407704457, 166.73188112222394, 176.8647139778532, 185.35930890373464, 192.03461835691593, 196.74836970574253, 199.4000975239946, 199.93328483702393, 198.33656768294662, 194.64397731576094, 188.9342148882519, 181.32897407355654, 171.9903473757996, 161.11737140978494, 148.94178478110854, 135.7230889801133, 121.74301755815569, 107.29953146609074, 92.70046853390923, 78.2569824418443, 64.27691101988673, 51.05821521889145, 38.88262859021508, 28.00965262420041, 18.671025926443463, 11.065785111748117, 5.356022684239048, 1.6634323170533816, 0.06671516297606095, 0.5999024760054095, 3.251630294257468, 7.9653816430840685, 14.640691096265368, 23.135286022146794, 33.26811887777604, 44.82322592295546, 57.554330112418526, 71.19009006347625, 85.43988322649952, 99.99999999999997 };
 
 /* USER CODE END PD */
 
@@ -73,6 +73,8 @@ TIM_HandleTypeDef htim2;
 float angle =0;
 uint8_t sine =0;
 uint8_t playSound = 0;  // Flag to control sound generation
+
+uint8_t noteIndex=0;
 
 /* USER CODE END PV */
 
@@ -107,7 +109,8 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
 		angle += 0.130899;
 		sine = (uint8_t)((arm_sin_f32(angle) + 1) * 120);
 		// Output the sample to the DAC channel
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sine);
+		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sineWave[noteIndex]);
+		noteIndex = (noteIndex + 1)%44;
 		}
 	}
 }
@@ -461,7 +464,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 3000;
+  htim2.Init.Period = 2727;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
