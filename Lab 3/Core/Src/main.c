@@ -35,7 +35,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define BUFFER_SIZE 50000
+#define BUFFER_SIZE 90000
 
 int32_t micBuffer[BUFFER_SIZE];
 //uint16_t noteIndex =0;
@@ -69,15 +69,8 @@ float angle =0;
 uint8_t sine =0;
 uint8_t playSound = 0;  // Flag to control sound generation
 uint8_t recording = 0; // Indicates whether recording is active
-uint8_t bufferFull = 0; //used to know when the recording buffer is full
 uint8_t noteIndex=0;
-uint8_t audioFilterHalfCplt = 0;
-uint8_t C6Note[42];
-uint8_t E6Note[34];
-uint8_t G6Note[26];
-uint8_t A5Note[48];
-uint8_t D6Note[28];
-uint8_t Fsharp6Note[20];
+
 
 /* USER CODE END PV */
 
@@ -92,6 +85,13 @@ static void MX_DFSDM1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+//timer used for led blinking
+void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
+	if(htim == &htim3){
+		if(recording)
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
+	}
+}
 
 uint8_t sine_wave(float x){
 	uint8_t y;
@@ -100,60 +100,14 @@ uint8_t sine_wave(float x){
 	return y;
 }
 
-uint8_t makeNote(uint8_t *array, int samples){
+uint8_t makeNote(int samples){
+	uint8_t array[samples];
 	for (int i=0;i<samples;i++){
 		float mod = (float)i/samples;
 		array[i]=sine_wave(mod);
 	}
 	return array;
 }
-
-
-//void makeFSharp6Note(){
-//    for (int i=0; i<20; i++){
-//        float mod = (float)i/20;
-//        FSharp6_samples[i] = sine_wave(mod);
-//    }
-//}
-
-//void makeD6Note(){
-//    for (int i=0; i<28; i++){
-//        float mod = (float)i/28;
-//        D6_samples[i] = sine_wave(mod);
-//    }
-//}
-
-//void makeA5Note(){
-//    for (int i=0; i<48; i++){
-//        float mod = (float)i/48;
-//        A5_samples[i] = sine_wave(mod);
-//    }
-//}
-
-// sine sampling array for a C6 tone
-//uint8_t makeC6Note(){
-//	for (int i=0;i<42;i++){
-//		float mod = (float)i/42;
-//		C6_samples[i]=sine_wave(mod);
-//	}
-//	return C6_samples;
-//}
-
-// sine sampling array for a E6 tone
-//uint8_t makeE6Note(){
-//	for (int i=0;i<34;i++){
-//		float mod = (float)i/34;
-//		E6_samples[i]=sine_wave(mod);
-//	}
-//}
-//
-//// sine sampling array for a G6 tone
-//void makeG6Note(){
-//	for (int i=0;i<26;i++){
-//		float mod = (float)i/26;
-//		G6_samples[i]=sine_wave(mod);
-//	}
-//}
 
 
 //==============Part 1: Driving DAC with Timer and Global Interrupt======================
@@ -225,14 +179,6 @@ uint8_t makeNote(uint8_t *array, int samples){
 // }
 
 
-//timer used for led blinking
-void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
-	if(htim == &htim3){
-		if(recording)
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
-	}
-}
-
 //=================Part 4: Putting it all together======================
 int currentCaseIndex = 0;
 int numCases = 8; // Number of notes (adjust as needed)
@@ -248,25 +194,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
 				break;
 			case 1: //play 1st note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(C6Note, 42), 42, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(42), 42, DAC_ALIGN_12B_R);
 				break;
 			case 2: //play 2nd note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(E6Note, 34), 34, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(50), 50, DAC_ALIGN_12B_R);
 				break;
 			case 3: //play 3rd note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(G6Note, 62), 62, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(62), 62, DAC_ALIGN_12B_R);
 				break;
 			case 4: //play recorded msg
 				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
 				break;
 			case 5: //play 4th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(A5Note, 48), 48, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(50), 50, DAC_ALIGN_12B_R);
 				break;
 			case 6: //play 5th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(D6Note, 28), 28, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(80), 28, DAC_ALIGN_12B_R);
 				break;
 			case 7: //play 6th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(Fsharp6Note, 20), 20, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(120), 120, DAC_ALIGN_12B_R);
 				break;
 			default:
 				break;
