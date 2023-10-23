@@ -185,11 +185,53 @@ void makeG6Note(){
 //    return min;
 //}
 
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+//	if (GPIO_Pin == BTN_Pin){
+//		HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+//		recording=1;
+//		HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
+//	}
+//}
+//
+//void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter ){ //invoked when conversion of mic input is complete
+//	if(hdfsdm_filter == &hdfsdm1_filter0){
+//		HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
+//		//do the shifting stuff
+//		for (int i = 0; i < BUFFER_SIZE; i++) {
+//		    if (micBuffer[i] < 0) {
+//		    	micBuffer[i] = -micBuffer[i]; // Multiply it by -1 to make it positive
+//		    }
+//		    micBuffer[i] = micBuffer[i] >> 10; //shift by 8 to get rid of the garbage
+//		}
+//		recording=0;//stop blinking
+//		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+//		  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R); //play back the recorded data on speaker
+//	}
+// }
+
+
+//timer used for led blinking
+void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
+	if(htim == &htim3){
+		if(recording)
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
+	}
+}
+
+//=================Part 4: Putting it all together======================
+uint8_t press=0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == BTN_Pin){
-		HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		recording=1;
-		HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
+		press++;
+		if(press % 2==1){
+			HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+			recording=1;
+			HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
+		}
+		else{
+			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+			HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R); //play back the recorded data on speaker
+		}
 	}
 }
 
@@ -204,21 +246,10 @@ void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filt
 		    micBuffer[i] = micBuffer[i] >> 10; //shift by 8 to get rid of the garbage
 		}
 		recording=0;//stop blinking
-		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-		  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R); //play back the recorded data on speaker
+
 	}
  }
 
-
-//timer used for led blinking
-void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
-	if(htim == &htim3){
-		if(recording)
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
-	}
-}
-
-//=================Part 4: Putting it all together======================
 //uint8_t note=0;
 //uint8_t playNote=0;
 //
