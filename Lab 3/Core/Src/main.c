@@ -35,20 +35,13 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 50000
 
-uint32_t micBuffer[BUFFER_SIZE];
+int32_t micBuffer[BUFFER_SIZE];
 //uint16_t noteIndex =0;
-uint8_t recording = 0; // Indicates whether recording is active
-uint8_t bufferFull = 0; //used to know when the recording buffer is full
 
-
-//#define NUM_SAMPLES 4410
-//#define AMPLITUDE 1.0
-//#define FREQUENCY 1800.0 //1KHz
-//#define SAMPLING_RATE 44100.0
-//
-uint32_t sineWave[] ={ 100.0, 114.56011677350048, 128.80990993652378, 142.44566988758152, 155.17677407704457, 166.73188112222394, 176.8647139778532, 185.35930890373464, 192.03461835691593, 196.74836970574253, 199.4000975239946, 199.93328483702393, 198.33656768294662, 194.64397731576094, 188.9342148882519, 181.32897407355654, 171.9903473757996, 161.11737140978494, 148.94178478110854, 135.7230889801133, 121.74301755815569, 107.29953146609074, 92.70046853390923, 78.2569824418443, 64.27691101988673, 51.05821521889145, 38.88262859021508, 28.00965262420041, 18.671025926443463, 11.065785111748117, 5.356022684239048, 1.6634323170533816, 0.06671516297606095, 0.5999024760054095, 3.251630294257468, 7.9653816430840685, 14.640691096265368, 23.135286022146794, 33.26811887777604, 44.82322592295546, 57.554330112418526, 71.19009006347625, 85.43988322649952, 99.99999999999997 };
+//PART 2 uncomment sinewave
+//uint32_t sineWave[] ={ 100.0, 114.56011677350048, 128.80990993652378, 142.44566988758152, 155.17677407704457, 166.73188112222394, 176.8647139778532, 185.35930890373464, 192.03461835691593, 196.74836970574253, 199.4000975239946, 199.93328483702393, 198.33656768294662, 194.64397731576094, 188.9342148882519, 181.32897407355654, 171.9903473757996, 161.11737140978494, 148.94178478110854, 135.7230889801133, 121.74301755815569, 107.29953146609074, 92.70046853390923, 78.2569824418443, 64.27691101988673, 51.05821521889145, 38.88262859021508, 28.00965262420041, 18.671025926443463, 11.065785111748117, 5.356022684239048, 1.6634323170533816, 0.06671516297606095, 0.5999024760054095, 3.251630294257468, 7.9653816430840685, 14.640691096265368, 23.135286022146794, 33.26811887777604, 44.82322592295546, 57.554330112418526, 71.19009006347625, 85.43988322649952, 99.99999999999997 };
 
 /* USER CODE END PD */
 
@@ -68,13 +61,20 @@ DFSDM_Channel_HandleTypeDef hdfsdm1_channel2;
 DMA_HandleTypeDef hdma_dfsdm1_flt0;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 float angle =0;
 uint8_t sine =0;
 uint8_t playSound = 0;  // Flag to control sound generation
-
+uint8_t recording = 0; // Indicates whether recording is active
+uint8_t bufferFull = 0; //used to know when the recording buffer is full
 uint8_t noteIndex=0;
+uint8_t audioFilterHalfCplt = 0;
+uint8_t C6_samples[42];
+uint8_t E6_samples[34];
+uint8_t G6_samples[26];
 
 /* USER CODE END PV */
 
@@ -86,7 +86,41 @@ static void MX_DAC1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DFSDM1_Init(void);
+static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+
+uint8_t sine_wave(float x){
+	uint8_t y;
+	float radians =2*PI*x;
+	y=(uint8_t) (127.5* (2/3) * (1+arm_sin_f32(radians)));
+	return y;
+}
+
+// sine sampling array for a C6 tone
+void makeC6Note(){
+	for (int i=0;i<42;i++){
+		float mod = (float)i/42;
+		C6_samples[i]=sine_wave(mod);
+	}
+}
+
+// sine sampling array for a C6 tone
+void makeE6Note(){
+	for (int i=0;i<34;i++){
+		float mod = (float)i/34;
+		E6_samples[i]=sine_wave(mod);
+	}
+}
+
+// sine sampling array for a C6 tone
+void makeG6Note(){
+	for (int i=0;i<26;i++){
+		float mod = (float)i/26;
+		G6_samples[i]=sine_wave(mod);
+	}
+}
+
 
 //==============Part 1: Driving DAC with Timer and Global Interrupt======================
 //void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
@@ -117,21 +151,6 @@ static void MX_DFSDM1_Init(void);
 
 
 //=============Part 2: Driving DAC with Timer and DMA====================
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == BTN_Pin){
-		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
-		if (ledState == GPIO_PIN_SET) { // The LED is currently ON
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED OFF
-			HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);  // Stop the DAC
-		} else { // The LED is currently OFF
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
-            HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);  // Start the DAC
-		}
-	}
-}
-
-
-//=============Part 3: DFSDM Microphone======================================
 //void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 //	if (GPIO_Pin == BTN_Pin){
 //		GPIO_PinState ledState = HAL_GPIO_ReadPin(LED_GPIO_Port, LED_Pin);
@@ -145,54 +164,103 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 //	}
 //}
 
-//void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter ){
-//	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_L); //play back the recorded data
-//	HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
-//	noteIndex=0;
+
+//=============Part 3: DFSDM Microphone======================================
+//int32_t findMax(int32_t arr[], int size) {
+//	int32_t max = arr[0]; // Initialize max to the first element of the array
+//
+//    for (int i = 1; i < size; i++) {
+//        if (arr[i] > max)
+//            max = arr[i]; // Update max if a larger element is found
+//    }
+//    return max;
 //}
+//int32_t findMin(int32_t arr[], int size) {
+//	int32_t min = arr[0]; // Initialize min to the first element of the array
 //
-//void StartRecording(void) {
-//    // Start recording audio
-//    HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE);
+//    for (int i = 1; i < size; i++) {
+//        if (arr[i] < min)
+//            min = arr[i]; // Update min if a smaller element is found
+//    }
+//    return min;
+//}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == BTN_Pin){
+		HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+		recording=1;
+		HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
+	}
+}
+
+void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter ){ //invoked when conversion of mic input is complete
+	if(hdfsdm_filter == &hdfsdm1_filter0){
+		HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
+		//do the shifting stuff
+		for (int i = 0; i < BUFFER_SIZE; i++) {
+		    if (micBuffer[i] < 0) {
+		    	micBuffer[i] = -micBuffer[i]; // Multiply it by -1 to make it positive
+		    }
+		    micBuffer[i] = micBuffer[i] >> 10; //shift by 8 to get rid of the garbage
+		}
+		recording=0;//stop blinking
+		  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+		  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R); //play back the recorded data on speaker
+	}
+ }
+
+
+//timer used for led blinking
+void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
+	if(htim == &htim3){
+		if(recording)
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
+	}
+}
+
+//=================Part 4: Putting it all together======================
+//uint8_t note=0;
+//uint8_t playNote=0;
 //
-//    recording = 1;
-//
-//    // Blink the LED while recording
-//	for (int i = 0; i < 5; i++) { // Blink 5 times
-//		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); // Turn on LED
-//		HAL_Delay(500); // Delay for 500 ms
-//		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET); // Turn off LED
-//		HAL_Delay(500); // Delay for 500 ms
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+//	if (GPIO_Pin == BTN_Pin){
+//		playNote=1;
+//		note++;
+////		HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, micBuffer, BUFFER_SIZE); //start recording
+////		 for (int i = 0; i < BUFFER_SIZE; i++) {
+////		      printf("%d\r\n", micBuffer[i]);
+////		    }
 //	}
 //}
 //
-//void StartPlayback(void) {
-//    // Start playing back recorded audio
-//    HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
-//    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); // Turn on LED
-//    recording = 0;
-//}
 //
-//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-//    if (GPIO_Pin == BTN_Pin) {
-//        // Button is pressed
-//        if (recording) {
-//            // If currently recording, stop recording and start playback
-//            HAL_DFSDM_FilterRegularStop_DMA(&hdfsdm1_filter0);
-//            StartPlayback();
-//        } else {
-//            // If not recording, start recording
-//        	bufferFull = 0; // Reset bufferFull flag
-//            StartRecording();
-//        }
-//    }
+////timer used for note playing before and after the playback
+//void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
+//	if(htim == &htim3){
+//			if(recording)
+//				HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
+//		}
+//	else if(htim == &htim4){
+//		if(playNote){
+//			switch (note){
+//			case 0:
+//				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, C6_samples, 42, DAC_ALIGN_8B_R);
+//				break;
+//			case 1:
+//				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, E6_samples, 34, DAC_ALIGN_8B_R); //play back the recorded data on speaker
+//				break;
+//			case 2:
+//				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, G6_samples, 26, DAC_ALIGN_8B_R); //play back the recorded data on speaker
+//				break;
+//			case 3:
+//				HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+//			}
+//			HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+//
+//		}
+//
+//	}
 //}
-
-//=================Part 4: Putting it all together======================
-
-
-
-
 
 /* USER CODE END PFP */
 
@@ -235,9 +303,11 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   MX_DFSDM1_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 //  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1); // Pin D7 //PART 1
-  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &sineWave, BUFFER_SIZE, DAC_ALIGN_12B_R); //play the sine wave with DMA //PART 2
+//  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &sineWave, BUFFER_SIZE, DAC_ALIGN_12B_R); //play the sine wave with DMA //PART 2
 //  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_L); //play back the recorded data
 //  HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE);
 
@@ -446,7 +516,7 @@ static void MX_DFSDM1_Init(void)
   hdfsdm1_channel2.Instance = DFSDM1_Channel2;
   hdfsdm1_channel2.Init.OutputClock.Activation = ENABLE;
   hdfsdm1_channel2.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-  hdfsdm1_channel2.Init.OutputClock.Divider = 34;
+  hdfsdm1_channel2.Init.OutputClock.Divider = 50;
   hdfsdm1_channel2.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
   hdfsdm1_channel2.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
   hdfsdm1_channel2.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
@@ -512,6 +582,96 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 40000;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 500;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+  HAL_TIM_Base_Start_IT(&htim3);
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 4000;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 2000;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+  HAL_TIM_Base_Start_IT(&htim4);
+  /* USER CODE END TIM4_Init 2 */
 
 }
 
