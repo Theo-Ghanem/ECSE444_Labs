@@ -22,10 +22,29 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ramfunc.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
+ ../Core/Inc/stm32l4s5i_iot01.h ../Core/Inc/stm32l4s5i_iot01_hsensor.h \
+ ../Core/Inc/stm32l4s5i_iot01.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/hts221.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/../Common/hsensor.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/../Common/tsensor.h \
+ ../Core/Inc/stm32l4s5i_iot01_tsensor.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/hts221/hts221.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lis3mdl/lis3mdl.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lis3mdl/../Common/magneto.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/lsm6dsl.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/../Common/accelero.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/../Common/gyro.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/lps22hb.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/../Common/psensor.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/../Common/tsensor.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/Common/hsensor.h \
+ C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/Common/tsensor.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -50,7 +69,27 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ramfunc.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h:
+../Core/Inc/stm32l4s5i_iot01.h:
+../Core/Inc/stm32l4s5i_iot01_hsensor.h:
+../Core/Inc/stm32l4s5i_iot01.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/hts221.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/../Common/hsensor.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/../Components/hts221/../Common/tsensor.h:
+../Core/Inc/stm32l4s5i_iot01_tsensor.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/hts221/hts221.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lis3mdl/lis3mdl.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lis3mdl/../Common/magneto.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/lsm6dsl.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/../Common/accelero.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lsm6dsl/../Common/gyro.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/lps22hb.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/../Common/psensor.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/lps22hb/../Common/tsensor.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/Common/hsensor.h:
+C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab\ 4/Drivers/Components/Common/tsensor.h:

@@ -22,6 +22,21 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <stdlib.h>
+#include "stm32l4s5i_iot01.h"
+#include "stm32l4s5i_iot01_hsensor.h"
+#include "stm32l4s5i_iot01_tsensor.h"
+#include "stm32l4s5i_iot01_magneto.h"
+#include "stm32l4s5i_iot01_nfctag.h"
+#include "stm32l4s5i_iot01_qspi.h"
+#include "stm32l4s5i_iot01_accelero.h"
+#include "hts221.h"
+#include "lis3mdl.h"
+#include "lsm6dsl.h"
+#include "lps22hb.h"
+#include "hsensor.h"
+#include "tsensor.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,6 +108,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+  BSP_HSENSOR_Init();
+  BSP_TSENSOR_Init();
 
   /* USER CODE END 2 */
 
@@ -101,10 +118,11 @@ int main(void)
 
   while (1)
   {
-	  float temp = 4.2;
+	  float humidity = BSP_HSENSOR_ReadHumidity();
+	  float temperature = BSP_TSENSOR_ReadTemp();
 	  char* msg = calloc(1, sizeof(char) * 100);
-	  sprintf(msg, "Look it's a floating point number: %.2f\r\n", temp);
-
+	  sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
+	  HAL_Delay(500);
 	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
     /* USER CODE END WHILE */
 
