@@ -95,13 +95,20 @@ int main(void)
   MX_OCTOSPI1_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-
+  BSP_HSENSOR_Init(); //init humidity sensor
+  BSP_TSENSOR_Init(); //init temperature sensor
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  float humidity = BSP_HSENSOR_Read();
+	  float temperature = BSP_TSENSOR_Read();
+	  char* buf[1000];
+	  sprintf(buf, "The humidity is: %.2f\nThe temperature is: %.2f\n", humidity, temperature);
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
