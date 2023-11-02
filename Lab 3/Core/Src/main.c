@@ -41,7 +41,7 @@ int32_t micBuffer[BUFFER_SIZE];
 //uint16_t noteIndex =0;
 
 //PART 2 uncomment sinewave
-//uint32_t sineWave[] ={ 100.0, 114.56011677350048, 128.80990993652378, 142.44566988758152, 155.17677407704457, 166.73188112222394, 176.8647139778532, 185.35930890373464, 192.03461835691593, 196.74836970574253, 199.4000975239946, 199.93328483702393, 198.33656768294662, 194.64397731576094, 188.9342148882519, 181.32897407355654, 171.9903473757996, 161.11737140978494, 148.94178478110854, 135.7230889801133, 121.74301755815569, 107.29953146609074, 92.70046853390923, 78.2569824418443, 64.27691101988673, 51.05821521889145, 38.88262859021508, 28.00965262420041, 18.671025926443463, 11.065785111748117, 5.356022684239048, 1.6634323170533816, 0.06671516297606095, 0.5999024760054095, 3.251630294257468, 7.9653816430840685, 14.640691096265368, 23.135286022146794, 33.26811887777604, 44.82322592295546, 57.554330112418526, 71.19009006347625, 85.43988322649952, 99.99999999999997 };
+uint32_t sineWave[] ={ 100.0, 114.56011677350048, 128.80990993652378, 142.44566988758152, 155.17677407704457, 166.73188112222394, 176.8647139778532, 185.35930890373464, 192.03461835691593, 196.74836970574253, 199.4000975239946, 199.93328483702393, 198.33656768294662, 194.64397731576094, 188.9342148882519, 181.32897407355654, 171.9903473757996, 161.11737140978494, 148.94178478110854, 135.7230889801133, 121.74301755815569, 107.29953146609074, 92.70046853390923, 78.2569824418443, 64.27691101988673, 51.05821521889145, 38.88262859021508, 28.00965262420041, 18.671025926443463, 11.065785111748117, 5.356022684239048, 1.6634323170533816, 0.06671516297606095, 0.5999024760054095, 3.251630294257468, 7.9653816430840685, 14.640691096265368, 23.135286022146794, 33.26811887777604, 44.82322592295546, 57.554330112418526, 71.19009006347625, 85.43988322649952, 99.99999999999997 };
 
 /* USER CODE END PD */
 
@@ -91,19 +91,29 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
 		if(recording)
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Make LED blink if recording
 	}
+	else if(htim == &htim2){
+			if(playSound){
+//			angle += 0.130899;
+//			sine = (uint8_t)((arm_sin_f32(angle) + 1) * 100);
+			// Output the sample to the DAC channel
+			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sineWave[noteIndex] * 0.8);
+			noteIndex = (noteIndex + 1)%44;
+			}
+		}
+
 }
 
-uint8_t sine_wave(float x){
-	uint8_t y;
-	float radians =2*PI*x;
-	y=(uint8_t) (127.5*(2/3)*(1+arm_sin_f32(radians)));
-	return y;
+uint32_t sine_wave(float x){
+	uint32_t sine;
+	float radians =2*3.14*x;
+	sine = (uint32_t)((arm_sin_f32(radians) + 1) * 80);
+	return sine;
 }
 
-uint8_t makeNote(int samples){
-	uint8_t array[samples];
+uint32_t makeNote(int samples){
+	uint32_t array[samples];
 	for (int i=0;i<samples;i++){
-		float mod = (float)i/samples;
+		float mod = (float)i/(float)samples;
 		array[i]=sine_wave(mod);
 	}
 	return array;
@@ -121,18 +131,6 @@ uint8_t makeNote(int samples){
 //		} else { // The LED is currently OFF
 //			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // Turn LED ON
 //			playSound = 1;  // Set the flag to start generating sound
-//		}
-//	}
-//}
-//
-//void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef * htim){
-//	if(htim == &htim2){
-//		if(playSound){
-//		angle += 0.130899;
-//		sine = (uint8_t)((arm_sin_f32(angle) + 1) * 120);
-//		// Output the sample to the DAC channel
-//		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_8B_R, sineWave[noteIndex]);
-//		noteIndex = (noteIndex + 1)%44;
 //		}
 //	}
 //}
@@ -187,6 +185,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == BTN_Pin) {
         HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1); // Stop any ongoing audio playback
 
+
         switch (currentCaseIndex) {
         	case 0: //record msg
         		HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
@@ -194,25 +193,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				HAL_DFSDM_FilterRegularStart_DMA(&hdfsdm1_filter0, &micBuffer, BUFFER_SIZE); //start recording
 				break;
 			case 1: //play 1st note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(42), 42, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(42), 42, DAC_ALIGN_8B_R);
 				break;
 			case 2: //play 2nd note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(50), 50, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)makeNote(50), 50, DAC_ALIGN_8B_R);
 				break;
 			case 3: //play 3rd note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(62), 62, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)makeNote(62), 62, DAC_ALIGN_8B_R);
 				break;
 			case 4: //play recorded msg
 				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, &micBuffer, BUFFER_SIZE, DAC_ALIGN_12B_R);
 				break;
 			case 5: //play 4th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(50), 50, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)makeNote(50), 50, DAC_ALIGN_8B_R);
 				break;
 			case 6: //play 5th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(80), 28, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)makeNote(80), 80, DAC_ALIGN_8B_R);
 				break;
 			case 7: //play 6th note
-				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, makeNote(120), 120, DAC_ALIGN_12B_R);
+				HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)makeNote(120), 120, DAC_ALIGN_8B_R);
 				break;
 			default:
 				break;
