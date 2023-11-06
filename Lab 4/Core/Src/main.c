@@ -59,13 +59,21 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 
+OSPI_HandleTypeDef hospi1;
+
 UART_HandleTypeDef huart1;
 
 osThreadId taskReadSensorHandle;
 osThreadId taskBtnInputHandle;
 osThreadId taskTransmitHandle;
 /* USER CODE BEGIN PV */
-uint8_t currentSensor=0;
+int currentSensor=-1;
+int numSensors=4;
+int buttonPressed=0;
+float temperature = 0.0;
+float pressure = 0.0;
+int16_t acceleroData[3] = {0};
+int16_t magnetoData[3] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +81,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_OCTOSPI1_Init(void);
 void StartTaskReadSensor(void const * argument);
 void StartTaskBtnInput(void const * argument);
 void StartTaskTransmit(void const * argument);
@@ -80,7 +89,7 @@ void StartTaskTransmit(void const * argument);
 /* USER CODE BEGIN PFP */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == BTN_Pin){
-		currentSensor+=1;
+		buttonPressed =1;
 	}
 }
 /* USER CODE END PFP */
@@ -120,7 +129,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_I2C2_Init();
+  MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
+  BSP_QSPI_Init();
   BSP_HSENSOR_Init();
   BSP_TSENSOR_Init();
   BSP_PSENSOR_Init();
@@ -180,47 +191,46 @@ int main(void)
 //	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
 
 
-	  char* msg = calloc(1, sizeof(char) * 100);
-	  int numSensors = 4;  // Number of sensors (humidity and temperature)
-	  float sensorValue = 0.0;
-	  char sensorName[20];
-	  int16_t xyzData[3] = {0};
-	  int xyzMsg=0;
-	  switch (currentSensor) {
-		  case 0:
-			  sensorValue = BSP_HSENSOR_ReadHumidity();
-			  strcpy(sensorName, "Humidity");
-			  break;
-		  case 1:
-			  sensorValue = BSP_TSENSOR_ReadTemp();
-			  strcpy(sensorName, "Temperature");
-			  break;
-		  case 2:
-			  BSP_ACCELERO_AccGetXYZ(xyzData);
-			  strcpy(sensorName, "Accelerometer");
-			  xyzMsg=1;
-			  break;
-		  case 3:
-			  BSP_MAGNETO_AccGetXYZ(xyzData);
-			  strcpy(sensorName, "Magnetometer");
-			  xyzMsg=1;
-			  break;
-		  // Add cases for more sensors if needed
-	  }
-	  if (xyzMsg==1){
-		  sprintf(msg, "The %s values are: X: %d, Y: %d, Z: %d\r\n", sensorName, xyzData[0], xyzData[1], xyzData[2]);
-	  }
-
-	  else {
-		  sprintf(msg, "The %s is: %.2f\r\n", sensorName, sensorValue);
-	  }
-
-	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-
-	  currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
-
-	  HAL_Delay(500);
-  }
+//	  char* msg = calloc(1, sizeof(char) * 100);
+//	  int numSensors = 4;  // Number of sensors (humidity and temperature)
+//	  float sensorValue = 0.0;
+//	  char sensorName[20];
+//	  int16_t xyzData[3] = {0};
+//	  int xyzMsg=0;
+//	  switch (currentSensor) {
+//		  case 0:
+//			  sensorValue = BSP_HSENSOR_ReadHumidity();
+//			  strcpy(sensorName, "Humidity");
+//			  break;
+//		  case 1:
+//			  sensorValue = BSP_TSENSOR_ReadTemp();
+//			  strcpy(sensorName, "Temperature");
+//			  break;
+//		  case 2:
+//			  BSP_ACCELERO_AccGetXYZ(xyzData);
+//			  strcpy(sensorName, "Accelerometer");
+//			  xyzMsg=1;
+//			  break;
+//		  case 3:
+//			  BSP_MAGNETO_AccGetXYZ(xyzData);
+//			  strcpy(sensorName, "Magnetometer");
+//			  xyzMsg=1;
+//			  break;
+//	  }
+//	  if (xyzMsg==1){
+//		  sprintf(msg, "The %s values are: X: %d, Y: %d, Z: %d\r\n", sensorName, xyzData[0], xyzData[1], xyzData[2]);
+//	  }
+//
+//	  else {
+//		  sprintf(msg, "The %s is: %.2f\r\n", sensorName, sensorValue);
+//	  }
+//
+//	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+//
+//	  currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
+//
+//	  HAL_Delay(500);
+//  }
 
     /* USER CODE END WHILE */
 
@@ -328,6 +338,45 @@ static void MX_I2C2_Init(void)
 }
 
 /**
+  * @brief OCTOSPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_OCTOSPI1_Init(void)
+{
+
+  /* USER CODE BEGIN OCTOSPI1_Init 0 */
+
+  /* USER CODE END OCTOSPI1_Init 0 */
+
+  /* USER CODE BEGIN OCTOSPI1_Init 1 */
+
+  /* USER CODE END OCTOSPI1_Init 1 */
+  /* OCTOSPI1 parameter configuration*/
+  hospi1.Instance = OCTOSPI1;
+  hospi1.Init.FifoThreshold = 1;
+  hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
+  hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
+  hospi1.Init.DeviceSize = 32;
+  hospi1.Init.ChipSelectHighTime = 1;
+  hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
+  hospi1.Init.ClockMode = HAL_OSPI_CLOCK_MODE_0;
+  hospi1.Init.ClockPrescaler = 1;
+  hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
+  hospi1.Init.DelayHoldQuarterCycle = HAL_OSPI_DHQC_DISABLE;
+  hospi1.Init.ChipSelectBoundary = 0;
+  hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
+  if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN OCTOSPI1_Init 2 */
+
+  /* USER CODE END OCTOSPI1_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -387,15 +436,36 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LEDError_GPIO_Port, LEDError_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LEDError_Pin */
+  GPIO_InitStruct.Pin = LEDError_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LEDError_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Button_Pin */
   GPIO_InitStruct.Pin = Button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PE10 PE11 PE12 PE13
+                           PE14 PE15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
+                          |GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPIM_P1;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
@@ -423,8 +493,10 @@ void StartTaskReadSensor(void const * argument)
   for(;;)
   {
     osDelay(1);
-    float humidity = BSP_HSENSOR_ReadHumidity();
-	float temperature = BSP_TSENSOR_ReadTemp();
+    temperature = BSP_TSENSOR_ReadTemp();
+    Pressure = BSP_PSENSOR_ReadPressure();
+    BSP_ACCELERO_AccGetXYZ(acceleroData);
+    BSP_MAGNETO_AccGetXYZ(magnetoData);
   }
   /* USER CODE END 5 */
 }
@@ -446,10 +518,10 @@ void StartTaskBtnInput(void const * argument)
     //task that determines when the button has been pressed,
     //and changes the mode of the application to output data
     //from the next sensor in the sequence;
-    uint8_t status = HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin);
-    if (status == 1)
-    	currentSensor +=1;
-
+    if (buttonPressed==1){
+    	currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
+    	buttonPressed=0;
+    }
   }
   /* USER CODE END StartTaskBtnInput */
 }
@@ -469,10 +541,29 @@ void StartTaskTransmit(void const * argument)
   {
     osDelay(1);
     //task that transmits this data to the terminal using the virtual com port UART; and,
-    char* msg = calloc(1, sizeof(char) * 100);
-	sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
-	HAL_Delay(500);
-	HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
+      char* msg = calloc(1, sizeof(char) * 100);
+	  float sensorValue = 0.0;
+	  char sensorName[20];
+	  int xyzMsg=0;
+	  switch (currentSensor) {
+		  case 0:
+			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
+			  break;
+		  case 1:
+			  sprintf(msg, "The Pressure is: %.2f\r\n", pressure);
+
+			  break;
+		  case 2:
+			  sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
+			  break;
+		  case 3:
+			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
+			  break;
+
+
+	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+	  HAL_Delay(500);
   }
 
   /* USER CODE END StartTaskTransmit */
@@ -510,6 +601,9 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+	  AL_GPIO_WritePin(LEDError_GPIO_Port, LEDError_Pin, GPIO_PIN_RESET);
+	  __BKPT();
+
   }
   /* USER CODE END Error_Handler_Debug */
 }
