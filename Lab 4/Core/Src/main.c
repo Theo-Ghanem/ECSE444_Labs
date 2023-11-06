@@ -72,8 +72,13 @@ int numSensors=4;
 int buttonPressed=0;
 float temperature = 0.0;
 float pressure = 0.0;
-int16_t acceleroData[3] = {0};
-int16_t magnetoData[3] = {0};
+int16_t acceleroData[3] = {0}; //used to store x y z values
+int16_t magnetoData[3] = {0}; //used to store x y z values
+
+int16_t temperatureSamples[100] = {0}; //type should probably be float
+int16_t pressureSamples[100] = {0}; //type should probably be float
+int16_t acceleroSamples[300] = {0};
+int16_t magnetoSamples[300] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -497,6 +502,66 @@ void StartTaskReadSensor(void const * argument)
     Pressure = BSP_PSENSOR_ReadPressure();
     BSP_ACCELERO_AccGetXYZ(acceleroData);
     BSP_MAGNETO_AccGetXYZ(magnetoData);
+
+    //=======Part 3==========
+	//erase
+//	uint32_t blockAddress = 0x0;  // First address of first block of 64KB
+//	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
+//		Error_Handler();
+//	}
+//	//write
+//	uint32_t writeAddress = 0x0;  // First address of first block of 64KB
+//	uint8_t data[] = {temperature};  // Replace with your data
+//	uint32_t dataSize = sizeof(data);
+//	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
+//		Error_Handler();
+//	}
+//
+//	//read
+//	uint32_t readAddress = 0x0;  // Replace with the address from where you want to read data
+//	uint8_t readData[1];  // Adjust the array size according to your data size
+//	if (BSP_QSPI_Read(readData, readAddress, sizeof(readData)) != QSPI_OK) {
+//		Error_Handler();
+//	}
+
+
+    //=======Part 4==========
+
+    //Get samples of sensors
+    for (int i=0; i++; i<100){
+    	temperatureSamples[i]=temperature*1000;//multiply by 1000 because the flash can only store int not float so later divide by 1000
+    	pressureSamples[i]=pressure*1000;//multiply by 1000 because the flash can only store int not float so later divide by 1000
+    }
+
+    //Erase block and write to it.
+    //(this can be written better but easier to test this way)
+
+    //erase
+	uint32_t blockAddress = 0x00000;  // First address of first block of 64KB
+	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
+		Error_Handler();
+	}
+	//write
+	uint32_t writeAddress = 0x00000;  // First address of first block of 64KB
+	uint8_t data[] = {temperatureSamples};
+	uint32_t dataSize = sizeof(data);
+	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
+		Error_Handler();
+	}
+
+    //erase
+	uint32_t blockAddress = 0x10000;  // First address of second block of 64KB
+	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
+		Error_Handler();
+	}
+	//write
+	uint32_t writeAddress = 0x10000;  // First address of second block of 64KB
+	uint8_t data[] = {pressureSamples};
+	uint32_t dataSize = sizeof(data);
+	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
+		Error_Handler();
+	}
+
   }
   /* USER CODE END 5 */
 }
@@ -540,15 +605,51 @@ void StartTaskTransmit(void const * argument)
   for(;;)
   {
     osDelay(1);
-    //task that transmits this data to the terminal using the virtual com port UART; and,
-      char* msg = calloc(1, sizeof(char) * 100);
+//    ======Part 2==========
+//    task that transmits this data to the terminal using the virtual com port UART; and,
+//      char* msg = calloc(1, sizeof(char) * 100);
+//	  switch (currentSensor) {
+//		  case 0:
+//			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
+//			  break;
+//		  case 1:
+//			  sprintf(msg, "The Pressure is: %.2f\r\n", pressure);
+//			  break;
+//		  case 2:
+//			  sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
+//			  break;
+//		  case 3:
+//			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
+//			  break;
+//		  default:
+//			  sprintf(msg, "Wrong sensor");
+//
+//
+//	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+//
+//	  HAL_Delay(500);
+
+
+    //==========Part 4=========
+    //read from flash and calculate statistics:
+
+	uint32_t readAddress = 0x00000;  // Replace with the address from where you want to read data
+	int16_t readData[100];  // Adjust the array size according to your data size
+	if (BSP_QSPI_Read(readData, readAddress, sizeof(readData)) != QSPI_OK) {
+		Error_Handler();
+	}
+	float readTemperatureSamples[100];
+	 for (int i = 0; i < 5; i++) {
+		 readTemperatureSamples[i] = readData[i]/1000; //divide by 1000 to get the float back
+	    }
+
+
 	  switch (currentSensor) {
 		  case 0:
 			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
 			  break;
 		  case 1:
 			  sprintf(msg, "The Pressure is: %.2f\r\n", pressure);
-
 			  break;
 		  case 2:
 			  sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
@@ -556,13 +657,18 @@ void StartTaskTransmit(void const * argument)
 		  case 3:
 			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
 			  break;
-		  default:
-			  sprintf(msg, "Unknown sensor or invalid sensor index\r\n");
+		  case 4: //Part 4 summary statistics
+			  sprintf(msg, "Summary Statistics:\r\n > Temperature: number of samples: %d, sample mean: %.2f, sample variance: %.2f.\r\n> Pressure: number of samples: %d, sample mean: %.2f, sample variance: %.2f.\r\n> Accelerometer: number of samples: %d, sample mean x: %.2f | y: %.2f | z: %.2f, sample variance x: %.2f | y: %.2f | z: %.2f.\r\n> Magnetometer: number of samples: %d, sample mean x: %.2f | y: %.2f | z: %.2f, sample variance x: %.2f | y: %.2f | z: %.2f.\r\n");
 			  break;
+		  default:
+			  sprintf(msg, "Wrong sensor");
+
 
 	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
 	  HAL_Delay(500);
+
+
   }
 
   /* USER CODE END StartTaskTransmit */
