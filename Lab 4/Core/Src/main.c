@@ -542,9 +542,6 @@ void StartTaskTransmit(void const * argument)
     osDelay(1);
     //task that transmits this data to the terminal using the virtual com port UART; and,
       char* msg = calloc(1, sizeof(char) * 100);
-	  float sensorValue = 0.0;
-	  char sensorName[20];
-	  int xyzMsg=0;
 	  switch (currentSensor) {
 		  case 0:
 			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
@@ -559,7 +556,9 @@ void StartTaskTransmit(void const * argument)
 		  case 3:
 			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
 			  break;
-
+		  default:
+			  sprintf(msg, "Unknown sensor or invalid sensor index\r\n");
+			  break;
 
 	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
