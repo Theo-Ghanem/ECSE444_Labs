@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -30,6 +31,7 @@
 #include "stm32l4s5i_iot01_nfctag.h"
 #include "stm32l4s5i_iot01_qspi.h"
 #include "stm32l4s5i_iot01_accelero.h"
+#include "mx25r6435f.h"
 #include "hts221.h"
 #include "lis3mdl.h"
 #include "lsm6dsl.h"
@@ -59,8 +61,11 @@ I2C_HandleTypeDef hi2c2;
 
 UART_HandleTypeDef huart1;
 
+osThreadId taskReadSensorHandle;
+osThreadId taskBtnInputHandle;
+osThreadId taskTransmitHandle;
 /* USER CODE BEGIN PV */
-
+uint8_t currentSensor=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,8 +73,16 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_I2C2_Init(void);
-/* USER CODE BEGIN PFP */
+void StartTaskReadSensor(void const * argument);
+void StartTaskBtnInput(void const * argument);
+void StartTaskTransmit(void const * argument);
 
+/* USER CODE BEGIN PFP */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == BTN_Pin){
+		currentSensor+=1;
+	}
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -110,20 +123,105 @@ int main(void)
   /* USER CODE BEGIN 2 */
   BSP_HSENSOR_Init();
   BSP_TSENSOR_Init();
+  BSP_PSENSOR_Init();
+  BSP_ACCELERO_Init();
+  BSP_MAGNETO_Init();
 
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of taskReadSensor */
+  osThreadDef(taskReadSensor, StartTaskReadSensor, osPriorityNormal, 0, 128);
+  taskReadSensorHandle = osThreadCreate(osThread(taskReadSensor), NULL);
+
+  /* definition and creation of taskBtnInput */
+  osThreadDef(taskBtnInput, StartTaskBtnInput, osPriorityNormal, 0, 128);
+  taskBtnInputHandle = osThreadCreate(osThread(taskBtnInput), NULL);
+
+  /* definition and creation of taskTransmit */
+  osThreadDef(taskTransmit, StartTaskTransmit, osPriorityNormal, 0, 128);
+  taskTransmitHandle = osThreadCreate(osThread(taskTransmit), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
   while (1)
   {
-	  float humidity = BSP_HSENSOR_ReadHumidity();
-	  float temperature = BSP_TSENSOR_ReadTemp();
+
+//	  float humidity = BSP_HSENSOR_ReadHumidity();
+//	  float temperature = BSP_TSENSOR_ReadTemp();
+//	  char* msg = calloc(1, sizeof(char) * 100);
+//	  sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
+//	  HAL_Delay(500);
+//	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
+
+
 	  char* msg = calloc(1, sizeof(char) * 100);
-	  sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
+	  int numSensors = 4;  // Number of sensors (humidity and temperature)
+	  float sensorValue = 0.0;
+	  char sensorName[20];
+	  int16_t xyzData[3] = {0};
+	  int xyzMsg=0;
+	  switch (currentSensor) {
+		  case 0:
+			  sensorValue = BSP_HSENSOR_ReadHumidity();
+			  strcpy(sensorName, "Humidity");
+			  break;
+		  case 1:
+			  sensorValue = BSP_TSENSOR_ReadTemp();
+			  strcpy(sensorName, "Temperature");
+			  break;
+		  case 2:
+			  BSP_ACCELERO_AccGetXYZ(xyzData);
+			  strcpy(sensorName, "Accelerometer");
+			  xyzMsg=1;
+			  break;
+		  case 3:
+			  BSP_MAGNETO_AccGetXYZ(xyzData);
+			  strcpy(sensorName, "Magnetometer");
+			  xyzMsg=1;
+			  break;
+		  // Add cases for more sensors if needed
+	  }
+	  if (xyzMsg==1){
+		  sprintf(msg, "The %s values are: X: %d, Y: %d, Z: %d\r\n", sensorName, xyzData[0], xyzData[1], xyzData[2]);
+	  }
+
+	  else {
+		  sprintf(msg, "The %s is: %.2f\r\n", sensorName, sensorValue);
+	  }
+
+	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+	  currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
+
 	  HAL_Delay(500);
-	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
+  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -284,12 +382,24 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin : Button_Pin */
+  GPIO_InitStruct.Pin = Button_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -298,6 +408,96 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartTaskReadSensor */
+/**
+  * @brief  Function implementing the taskReadSensor thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartTaskReadSensor */
+void StartTaskReadSensor(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+    float humidity = BSP_HSENSOR_ReadHumidity();
+	float temperature = BSP_TSENSOR_ReadTemp();
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartTaskBtnInput */
+/**
+* @brief Function implementing the taskBtnInput thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskBtnInput */
+void StartTaskBtnInput(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskBtnInput */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+    //task that determines when the button has been pressed,
+    //and changes the mode of the application to output data
+    //from the next sensor in the sequence;
+    uint8_t status = HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin);
+    if (status == 1)
+    	currentSensor +=1;
+
+  }
+  /* USER CODE END StartTaskBtnInput */
+}
+
+/* USER CODE BEGIN Header_StartTaskTransmit */
+/**
+* @brief Function implementing the taskTransmit thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskTransmit */
+void StartTaskTransmit(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskTransmit */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+    //task that transmits this data to the terminal using the virtual com port UART; and,
+    char* msg = calloc(1, sizeof(char) * 100);
+	sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
+	HAL_Delay(500);
+	HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
+  }
+
+  /* USER CODE END StartTaskTransmit */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
