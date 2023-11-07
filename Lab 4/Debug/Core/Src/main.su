@@ -7,7 +7,7 @@
 ../Core/Src/main.c:469:13:MX_USART1_UART_Init	8	static
 ../Core/Src/main.c:517:13:MX_GPIO_Init	48	static
 ../Core/Src/main.c:564:6:StartTaskReadSensor	24	static
-../Core/Src/main.c:666:6:StartTaskBtnInput	16	static
-../Core/Src/main.c:697:6:StartTaskTransmit	32	static
-../Core/Src/main.c:748:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:765:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:654:6:StartTaskBtnInput	16	static
+../Core/Src/main.c:685:6:StartTaskTransmit	32	static
+../Core/Src/main.c:736:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:753:6:Error_Handler	8	static,ignoring_inline_asm

@@ -88,13 +88,13 @@ int16_t magnetoSamples_y[100] = {0};
 int16_t magnetoSamples_z[100] = {0};
 
 uint32_t flash_address_temperature =		0x00000;
-uint32_t flash_address_pressure =			0x10000;
-uint32_t flash_address_accelerometer_x = 	0x20000;
-uint32_t flash_address_accelerometer_y = 	0x30000;
-uint32_t flash_address_accelerometer_z = 	0x40000;
-uint32_t flash_address_magnetometer_x =		0x50000;
-uint32_t flash_address_magnetometer_y =		0x60000;
-uint32_t flash_address_magnetometer_z =		0x70000;
+uint32_t flash_address_pressure =			0x04000;
+uint32_t flash_address_accelerometer_x = 	0x08000;
+uint32_t flash_address_accelerometer_y = 	0x0C000;
+uint32_t flash_address_accelerometer_z = 	0x10000;
+uint32_t flash_address_magnetometer_x =		0x14000;
+uint32_t flash_address_magnetometer_y =		0x18000;
+uint32_t flash_address_magnetometer_z =		0x1C000;
 int samples = 0;
 /* USER CODE END PV */
 
@@ -607,19 +607,7 @@ void StartTaskReadSensor(void const * argument)
         if(samples == 0){
         	if (BSP_QSPI_Erase_Block(flash_address_temperature) != QSPI_OK)
 				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_pressure) != QSPI_OK)
-				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_x) != QSPI_OK)
-				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_y) != QSPI_OK)
-				Error_Handler();
 			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_z) != QSPI_OK)
-				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_x) != QSPI_OK)
-				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_y) != QSPI_OK)
-				Error_Handler();
-			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_z) != QSPI_OK)
 				Error_Handler();
         }
 
@@ -685,7 +673,7 @@ void StartTaskReadSensor(void const * argument)
 			Error_Handler();
 
 
-        if(samples < 999)
+        if(samples < 499)
         	samples++;
     }
   /* USER CODE END 5 */
