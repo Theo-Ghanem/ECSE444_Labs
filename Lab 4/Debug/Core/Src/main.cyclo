@@ -6,8 +6,8 @@
 ../Core/Src/main.c:421:13:MX_OCTOSPI1_Init	3
 ../Core/Src/main.c:469:13:MX_USART1_UART_Init	5
 ../Core/Src/main.c:517:13:MX_GPIO_Init	1
-../Core/Src/main.c:564:6:StartTaskReadSensor	20
-../Core/Src/main.c:666:6:StartTaskBtnInput	3
-../Core/Src/main.c:697:6:StartTaskTransmit	7
-../Core/Src/main.c:748:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:765:6:Error_Handler	1
+../Core/Src/main.c:564:6:StartTaskReadSensor	14
+../Core/Src/main.c:654:6:StartTaskBtnInput	3
+../Core/Src/main.c:685:6:StartTaskTransmit	7
+../Core/Src/main.c:736:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:753:6:Error_Handler	1
