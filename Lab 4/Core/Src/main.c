@@ -141,38 +141,73 @@ void computeStatistics(char* msg){
 		Error_Handler();
 
 	int avgTemp = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgTemp += temperatureSamples[i];
-	avgTemp /= min(samples, 100);
-
 	int avgPres = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgPres += pressureSamples[i];
-	avgPres /= min(samples, 100);
-
 	int avgAccel_x = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgAccel_x += acceleroSamples_x[i];
-	avgAccel_x /= min(samples, 100);
-
 	int avgAccel_y = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgAccel_y += acceleroSamples_y[i];
-	avgAccel_y /= min(samples, 100);
-
 	int avgAccel_z = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgAccel_z += acceleroSamples_z[i];
-	avgAccel_z /= min(samples, 100);
-
 	int avgMagnet_x = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgMagnet_x += magnetoSamples_x[i];
-	avgMagnet_x /= min(samples, 100);
-
 	int avgMagnet_y = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgMagnet_y += magnetoSamples_y[i];
-	avgMagnet_y /= min(samples, 100);
-
 	int avgMagnet_z = 0;
-	for(int i = 0; i < min(samples, 100); i++) avgMagnet_z += magnetoSamples_z[i];
+
+	int varianceTemp = 0;
+	int variancePres = 0;
+	int varianceAccel_x = 0;
+	int varianceAccel_y = 0;
+	int varianceAccel_z = 0;
+	int varianceMagnet_x = 0;
+	int varianceMagnet_y = 0;
+	int varianceMagnet_z = 0;
+
+	for (int i = 0; i < min(samples, 100); i++) {
+		avgTemp += temperatureSamples[i];
+		avgPres += pressureSamples[i];
+		avgAccel_x += acceleroSamples_x[i];
+		avgAccel_y += acceleroSamples_y[i];
+		avgAccel_z += acceleroSamples_z[i];
+		avgMagnet_x += magnetoSamples_x[i];
+		avgMagnet_y += magnetoSamples_y[i];
+		avgMagnet_z += magnetoSamples_z[i];
+	}
+
+	avgTemp /= min(samples, 100);
+	avgPres /= min(samples, 100);
+	avgAccel_x /= min(samples, 100);
+	avgAccel_y /= min(samples, 100);
+	avgAccel_z /= min(samples, 100);
+	avgMagnet_x /= min(samples, 100);
+	avgMagnet_y /= min(samples, 100);
 	avgMagnet_z /= min(samples, 100);
 
-	sprintf(msg, "\r\nStatistics:\r\nSamples: %d\r\n\tTemperature:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tPressure:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tAccelerometer:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n\tMagnetormeter:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n", min(samples, 100), avgTemp, 0, avgPres, 0, avgAccel_x, avgAccel_y, avgAccel_z, 0, 0, 0, avgMagnet_x, avgMagnet_y, avgMagnet_z, 0, 0, 0);
+	for (int i = 0; i < min(samples, 100); i++) {
+		int tempDiff = temperatureSamples[i] - avgTemp;
+		int presDiff = pressureSamples[i] - avgPres;
+		int accel_xDiff = acceleroSamples_x[i] - avgAccel_x;
+		int accel_yDiff = acceleroSamples_y[i] - avgAccel_y;
+		int accel_zDiff = acceleroSamples_z[i] - avgAccel_z;
+		int magnet_xDiff = magnetoSamples_x[i] - avgMagnet_x;
+		int magnet_yDiff = magnetoSamples_y[i] - avgMagnet_y;
+		int magnet_zDiff = magnetoSamples_z[i] - avgMagnet_z;
+
+		varianceTemp += tempDiff * tempDiff;
+		variancePres += presDiff * presDiff;
+		varianceAccel_x += accel_xDiff * accel_xDiff;
+		varianceAccel_y += accel_yDiff * accel_yDiff;
+		varianceAccel_z += accel_zDiff * accel_zDiff;
+		varianceMagnet_x += magnet_xDiff * magnet_xDiff;
+		varianceMagnet_y += magnet_yDiff * magnet_yDiff;
+		varianceMagnet_z += magnet_zDiff * magnet_zDiff;
+	}
+
+	varianceTemp /= min(samples, 100);
+	variancePres /= min(samples, 100);
+	varianceAccel_x /= min(samples, 100);
+	varianceAccel_y /= min(samples, 100);
+	varianceAccel_z /= min(samples, 100);
+	varianceMagnet_x /= min(samples, 100);
+	varianceMagnet_y /= min(samples, 100);
+	varianceMagnet_z /= min(samples, 100);
+
+    sprintf(msg, "\r\nStatistics:\r\nSamples: %d\r\n\tTemperature:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tPressure:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tAccelerometer:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n\tMagnetometer:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n", min(samples, 100), avgTemp, varianceTemp, avgPres, variancePres, avgAccel_x, avgAccel_y, avgAccel_z, varianceAccel_x, varianceAccel_y, varianceAccel_z, avgMagnet_x, avgMagnet_y, avgMagnet_z, varianceMagnet_x, varianceMagnet_y, varianceMagnet_z);
 }
 /* USER CODE END 0 */
 
