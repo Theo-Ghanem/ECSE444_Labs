@@ -16,7 +16,7 @@ S_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Core/Startup/%.o: ../Core/Startup/%.s Core/Startup/subdir.mk
-	arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components" -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components/hts221" -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components/lis3mdl" -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components/lsm6dsl" -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components/lps22hb" -I"C:/Users/theog/Documents/CodingProjects/ECSE444_Labs/Lab 4/Drivers/Components/Common" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
+	arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components" -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components/hts221" -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components/lis3mdl" -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components/lsm6dsl" -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components/lps22hb" -I"C:/Users/Philippe/STM32CubeIDE/workspace_1.13.1/ECSE444_Labs/Lab 4/Drivers/Components/Common" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
 
 clean: clean-Core-2f-Startup
 

@@ -1,0 +1,8 @@
+../Core/Src/main.c:577:6:StartTaskBtnInput	2
+../Core/Src/main.c:603:6:StartTaskTransmit	5
+../Core/Src/main.c:97:6:HAL_GPIO_EXTI_Callback	2
+../Core/Src/main.c:686:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:704:6:Error_Handler	1
+../Core/Src/main.c:254:6:SystemClock_Config	3
+../Core/Src/main.c:115:5:main	8
+../Core/Src/main.c:492:6:StartTaskReadSensor	5

@@ -26,7 +26,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4s5i_iot01.h"
-#include "st25dv.h"
+#include "../../Drivers/Components/st25dv/st25dv.h"
 
 /** @addtogroup BSP
   * @{

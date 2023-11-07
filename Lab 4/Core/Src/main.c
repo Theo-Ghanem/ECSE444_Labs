@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -24,9 +24,11 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "stm32l4s5i_iot01.h"
 #include "stm32l4s5i_iot01_hsensor.h"
 #include "stm32l4s5i_iot01_tsensor.h"
+#include "stm32l4s5i_iot01_psensor.h"
 #include "stm32l4s5i_iot01_magneto.h"
 #include "stm32l4s5i_iot01_nfctag.h"
 #include "stm32l4s5i_iot01_qspi.h"
@@ -67,18 +69,33 @@ osThreadId taskReadSensorHandle;
 osThreadId taskBtnInputHandle;
 osThreadId taskTransmitHandle;
 /* USER CODE BEGIN PV */
-int currentSensor=-1;
-int numSensors=4;
-int buttonPressed=0;
+int currentSensor = 0;
+int statsPrinted = 0;
+int numSensors = 5;
+int buttonPressed = 0;
 float temperature = 0.0;
 float pressure = 0.0;
-int16_t acceleroData[3] = {0}; //used to store x y z values
-int16_t magnetoData[3] = {0}; //used to store x y z values
+int16_t acceleroData[3] = {0}; // used to store x y z values
+int16_t magnetoData[3] = {0};  // used to store x y z values
 
-int16_t temperatureSamples[100] = {0}; //type should probably be float
-int16_t pressureSamples[100] = {0}; //type should probably be float
-int16_t acceleroSamples[300] = {0};
-int16_t magnetoSamples[300] = {0};
+int16_t temperatureSamples[100] = {0}; // type should probably be float
+int16_t pressureSamples[100] = {0};    // type should probably be float
+int16_t acceleroSamples_x[100] = {0};
+int16_t acceleroSamples_y[100] = {0};
+int16_t acceleroSamples_z[100] = {0};
+int16_t magnetoSamples_x[100] = {0};
+int16_t magnetoSamples_y[100] = {0};
+int16_t magnetoSamples_z[100] = {0};
+
+uint32_t flash_address_temperature =		0x00000;
+uint32_t flash_address_pressure =			0x10000;
+uint32_t flash_address_accelerometer_x = 	0x20000;
+uint32_t flash_address_accelerometer_y = 	0x30000;
+uint32_t flash_address_accelerometer_z = 	0x40000;
+uint32_t flash_address_magnetometer_x =		0x50000;
+uint32_t flash_address_magnetometer_y =		0x60000;
+uint32_t flash_address_magnetometer_z =		0x70000;
+int samples = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,16 +109,71 @@ void StartTaskBtnInput(void const * argument);
 void StartTaskTransmit(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == BTN_Pin){
-		buttonPressed =1;
-	}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == Button_Pin)
+    {
+        buttonPressed = 1;
+    }
 }
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+void computeStatistics(char* msg){
+	if(BSP_QSPI_Read((uint8_t*) temperatureSamples, flash_address_temperature, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) pressureSamples, flash_address_pressure, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) acceleroSamples_x, flash_address_accelerometer_x, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) acceleroSamples_y, flash_address_accelerometer_y, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) acceleroSamples_z, flash_address_accelerometer_z, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) magnetoSamples_x, flash_address_magnetometer_x, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) magnetoSamples_y, flash_address_magnetometer_y, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+	if(BSP_QSPI_Read((uint8_t*) magnetoSamples_z, flash_address_magnetometer_z, sizeof(int16_t) * min(samples, 100)) != QSPI_OK)
+		Error_Handler();
+
+	int avgTemp = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgTemp += temperatureSamples[i];
+	avgTemp /= min(samples, 100);
+
+	int avgPres = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgPres += pressureSamples[i];
+	avgPres /= min(samples, 100);
+
+	int avgAccel_x = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgAccel_x += acceleroSamples_x[i];
+	avgAccel_x /= min(samples, 100);
+
+	int avgAccel_y = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgAccel_y += acceleroSamples_y[i];
+	avgAccel_y /= min(samples, 100);
+
+	int avgAccel_z = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgAccel_z += acceleroSamples_z[i];
+	avgAccel_z /= min(samples, 100);
+
+	int avgMagnet_x = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgMagnet_x += magnetoSamples_x[i];
+	avgMagnet_x /= min(samples, 100);
+
+	int avgMagnet_y = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgMagnet_y += magnetoSamples_y[i];
+	avgMagnet_y /= min(samples, 100);
+
+	int avgMagnet_z = 0;
+	for(int i = 0; i < min(samples, 100); i++) avgMagnet_z += magnetoSamples_z[i];
+	avgMagnet_z /= min(samples, 100);
+
+	sprintf(msg, "\r\nStatistics:\r\nSamples: %d\r\n\tTemperature:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tPressure:\r\n\t\tAverage: %d\r\n\t\tVariance: %d\r\n\r\n\tAccelerometer:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n\tMagnetormeter:\r\n\t\tAverage x: %d\r\n\t\tAverage y: %d\r\n\t\tAverage z: %d\r\n\t\tVariance x: %d\r\n\t\tVariance y: %d\r\n\t\tVariance z: %d\r\n\r\n", min(samples, 100), avgTemp, 0, avgPres, 0, avgAccel_x, avgAccel_y, avgAccel_z, 0, 0, 0, avgMagnet_x, avgMagnet_y, avgMagnet_z, 0, 0, 0);
+}
 /* USER CODE END 0 */
 
 /**
@@ -136,46 +208,46 @@ int main(void)
   MX_I2C2_Init();
   MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
-  BSP_QSPI_Init();
-  BSP_HSENSOR_Init();
-  BSP_TSENSOR_Init();
-  BSP_PSENSOR_Init();
-  BSP_ACCELERO_Init();
-  BSP_MAGNETO_Init();
+    BSP_QSPI_Init();
+    BSP_HSENSOR_Init();
+    BSP_TSENSOR_Init();
+    BSP_PSENSOR_Init();
+    BSP_ACCELERO_Init();
+    BSP_MAGNETO_Init();
 
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+    /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
+    /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
+    /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+    /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
   /* definition and creation of taskReadSensor */
-  osThreadDef(taskReadSensor, StartTaskReadSensor, osPriorityNormal, 0, 128);
+  osThreadDef(taskReadSensor, StartTaskReadSensor, osPriorityNormal, 0, 256);
   taskReadSensorHandle = osThreadCreate(osThread(taskReadSensor), NULL);
 
   /* definition and creation of taskBtnInput */
-  osThreadDef(taskBtnInput, StartTaskBtnInput, osPriorityNormal, 0, 128);
+  osThreadDef(taskBtnInput, StartTaskBtnInput, osPriorityNormal, 0, 256);
   taskBtnInputHandle = osThreadCreate(osThread(taskBtnInput), NULL);
 
   /* definition and creation of taskTransmit */
-  osThreadDef(taskTransmit, StartTaskTransmit, osPriorityNormal, 0, 128);
+  osThreadDef(taskTransmit, StartTaskTransmit, osPriorityNormal, 0, 256);
   taskTransmitHandle = osThreadCreate(osThread(taskTransmit), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+    /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -185,62 +257,61 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  while (1)
-  {
+    while (1)
+    {
 
-//	  float humidity = BSP_HSENSOR_ReadHumidity();
-//	  float temperature = BSP_TSENSOR_ReadTemp();
-//	  char* msg = calloc(1, sizeof(char) * 100);
-//	  sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
-//	  HAL_Delay(500);
-//	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
+        //	  float humidity = BSP_HSENSOR_ReadHumidity();
+        //	  float temperature = BSP_TSENSOR_ReadTemp();
+        //	  char* msg = calloc(1, sizeof(char) * 100);
+        //	  sprintf(msg, "The humidity is: %.2f\r\nThe temperature is: %.2f\r\n", humidity, temperature);
+        //	  HAL_Delay(500);
+        //	  HAL_UART_Transmit(&huart1, msg, sizeof(char) * 100, 10000);
 
-
-//	  char* msg = calloc(1, sizeof(char) * 100);
-//	  int numSensors = 4;  // Number of sensors (humidity and temperature)
-//	  float sensorValue = 0.0;
-//	  char sensorName[20];
-//	  int16_t xyzData[3] = {0};
-//	  int xyzMsg=0;
-//	  switch (currentSensor) {
-//		  case 0:
-//			  sensorValue = BSP_HSENSOR_ReadHumidity();
-//			  strcpy(sensorName, "Humidity");
-//			  break;
-//		  case 1:
-//			  sensorValue = BSP_TSENSOR_ReadTemp();
-//			  strcpy(sensorName, "Temperature");
-//			  break;
-//		  case 2:
-//			  BSP_ACCELERO_AccGetXYZ(xyzData);
-//			  strcpy(sensorName, "Accelerometer");
-//			  xyzMsg=1;
-//			  break;
-//		  case 3:
-//			  BSP_MAGNETO_AccGetXYZ(xyzData);
-//			  strcpy(sensorName, "Magnetometer");
-//			  xyzMsg=1;
-//			  break;
-//	  }
-//	  if (xyzMsg==1){
-//		  sprintf(msg, "The %s values are: X: %d, Y: %d, Z: %d\r\n", sensorName, xyzData[0], xyzData[1], xyzData[2]);
-//	  }
-//
-//	  else {
-//		  sprintf(msg, "The %s is: %.2f\r\n", sensorName, sensorValue);
-//	  }
-//
-//	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-//
-//	  currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
-//
-//	  HAL_Delay(500);
-//  }
+        //	  char* msg = calloc(1, sizeof(char) * 100);
+        //	  int numSensors = 4;  // Number of sensors (humidity and temperature)
+        //	  float sensorValue = 0.0;
+        //	  char sensorName[20];
+        //	  int16_t xyzData[3] = {0};
+        //	  int xyzMsg=0;
+        //	  switch (currentSensor) {
+        //		  case 0:
+        //			  sensorValue = BSP_HSENSOR_ReadHumidity();
+        //			  strcpy(sensorName, "Humidity");
+        //			  break;
+        //		  case 1:
+        //			  sensorValue = BSP_TSENSOR_ReadTemp();
+        //			  strcpy(sensorName, "Temperature");
+        //			  break;
+        //		  case 2:
+        //			  BSP_ACCELERO_AccGetXYZ(xyzData);
+        //			  strcpy(sensorName, "Accelerometer");
+        //			  xyzMsg=1;
+        //			  break;
+        //		  case 3:
+        //			  BSP_MAGNETO_AccGetXYZ(xyzData);
+        //			  strcpy(sensorName, "Magnetometer");
+        //			  xyzMsg=1;
+        //			  break;
+        //	  }
+        //	  if (xyzMsg==1){
+        //		  sprintf(msg, "The %s values are: X: %d, Y: %d, Z: %d\r\n", sensorName, xyzData[0], xyzData[1], xyzData[2]);
+        //	  }
+        //
+        //	  else {
+        //		  sprintf(msg, "The %s is: %.2f\r\n", sensorName, sensorValue);
+        //	  }
+        //
+        //	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+        //
+        //	  currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
+        //
+        //	  HAL_Delay(500);
+        //  }
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+    }
   /* USER CODE END 3 */
 }
 
@@ -354,6 +425,8 @@ static void MX_OCTOSPI1_Init(void)
 
   /* USER CODE END OCTOSPI1_Init 0 */
 
+  OSPIM_CfgTypeDef OSPIM_Cfg_Struct = {0};
+
   /* USER CODE BEGIN OCTOSPI1_Init 1 */
 
   /* USER CODE END OCTOSPI1_Init 1 */
@@ -372,6 +445,13 @@ static void MX_OCTOSPI1_Init(void)
   hospi1.Init.ChipSelectBoundary = 0;
   hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
   if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  OSPIM_Cfg_Struct.ClkPort = 1;
+  OSPIM_Cfg_Struct.NCSPort = 1;
+  OSPIM_Cfg_Struct.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
+  if (HAL_OSPIM_Config(&hospi1, &OSPIM_Cfg_Struct, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
   }
@@ -462,16 +542,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PE10 PE11 PE12 PE13
-                           PE14 PE15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPIM_P1;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
@@ -486,190 +556,183 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN Header_StartTaskReadSensor */
 /**
-  * @brief  Function implementing the taskReadSensor thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Function implementing the taskReadSensor thread.
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartTaskReadSensor */
 void StartTaskReadSensor(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-    temperature = BSP_TSENSOR_ReadTemp();
-    Pressure = BSP_PSENSOR_ReadPressure();
-    BSP_ACCELERO_AccGetXYZ(acceleroData);
-    BSP_MAGNETO_AccGetXYZ(magnetoData);
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(100);
 
-    //=======Part 3==========
-	//erase
-//	uint32_t blockAddress = 0x0;  // First address of first block of 64KB
-//	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
-//		Error_Handler();
-//	}
-//	//write
-//	uint32_t writeAddress = 0x0;  // First address of first block of 64KB
-//	uint8_t data[] = {temperature};  // Replace with your data
-//	uint32_t dataSize = sizeof(data);
-//	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
-//		Error_Handler();
-//	}
+        if(samples == 0){
+        	if (BSP_QSPI_Erase_Block(flash_address_temperature) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_pressure) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_x) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_y) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_accelerometer_z) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_x) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_y) != QSPI_OK)
+				Error_Handler();
+			if (BSP_QSPI_Erase_Block(flash_address_magnetometer_z) != QSPI_OK)
+				Error_Handler();
+        }
+
+        if(currentSensor == 4) continue;
+
+        temperature = BSP_TSENSOR_ReadTemp();
+        pressure = BSP_PSENSOR_ReadPressure();
+        BSP_ACCELERO_AccGetXYZ(acceleroData);
+        BSP_MAGNETO_GetXYZ(magnetoData);
+
+        // =======Part 3==========
+//        // erase
+//		uint32_t blockAddress = 0x0;  // First address of first block of 64KB
+//		if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
+//			Error_Handler();
+//		}
+//		//write
+//		uint32_t writeAddress = 0x0;  // First address of first block of 64KB
+//		uint8_t data[] = { (uint8_t) temperature };  // Replace with your data
+//		uint32_t dataSize = sizeof(data);
+//		if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
+//			Error_Handler();
+//		}
 //
-//	//read
-//	uint32_t readAddress = 0x0;  // Replace with the address from where you want to read data
-//	uint8_t readData[1];  // Adjust the array size according to your data size
-//	if (BSP_QSPI_Read(readData, readAddress, sizeof(readData)) != QSPI_OK) {
-//		Error_Handler();
-//	}
+//		//read
+//		uint32_t readAddress = 0x0;  // Replace with the address from where you want to read data
+//		uint8_t readData[1];  // Adjust the array size according to your data size
+//		if (BSP_QSPI_Read(readData, readAddress, sizeof(readData)) != QSPI_OK) {
+//			Error_Handler();
+//		}
+//
+//		// Transmit
+//		char *msg = calloc(1, sizeof(char) * 100);
+//		sprintf(msg, "The Temperature from FLASH is: %d\r\n", (int)readData[0]);
+//		HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 
 
-    //=======Part 4==========
+        //=======Part 4==========
 
-    //Get samples of sensors
-    for (int i=0; i++; i<100){
-    	temperatureSamples[i]=temperature*1000;//multiply by 1000 because the flash can only store int not float so later divide by 1000
-    	pressureSamples[i]=pressure*1000;//multiply by 1000 because the flash can only store int not float so later divide by 1000
+        // write
+        uint32_t offset = samples * sizeof(int16_t);
+
+        int16_t temperature_int = (int16_t) (temperature);
+        if (BSP_QSPI_Write((uint8_t*) &temperature_int, flash_address_temperature + offset, sizeof(int16_t)) != QSPI_OK)
+            Error_Handler();
+
+        int16_t pressure_int = (int16_t) (pressure);
+		if (BSP_QSPI_Write((uint8_t*) &pressure_int, flash_address_pressure + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+
+		if (BSP_QSPI_Write((uint8_t*) &acceleroData[0], flash_address_accelerometer_x + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+		if (BSP_QSPI_Write((uint8_t*) &acceleroData[1], flash_address_accelerometer_y + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+		if (BSP_QSPI_Write((uint8_t*) &acceleroData[2], flash_address_accelerometer_z + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+
+		if (BSP_QSPI_Write((uint8_t*) &magnetoData[0], flash_address_magnetometer_x + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+		if (BSP_QSPI_Write((uint8_t*) &magnetoData[1], flash_address_magnetometer_y + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+		if (BSP_QSPI_Write((uint8_t*) &magnetoData[2], flash_address_magnetometer_z + offset, sizeof(int16_t)) != QSPI_OK)
+			Error_Handler();
+
+
+        if(samples < 999)
+        	samples++;
     }
-
-    //Erase block and write to it.
-    //(this can be written better but easier to test this way)
-
-    //erase
-	uint32_t blockAddress = 0x00000;  // First address of first block of 64KB
-	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
-		Error_Handler();
-	}
-	//write
-	uint32_t writeAddress = 0x00000;  // First address of first block of 64KB
-	uint8_t data[] = {temperatureSamples};
-	uint32_t dataSize = sizeof(data);
-	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
-		Error_Handler();
-	}
-
-    //erase
-	uint32_t blockAddress = 0x10000;  // First address of second block of 64KB
-	if (BSP_QSPI_Erase_Block(blockAddress) != QSPI_OK) {
-		Error_Handler();
-	}
-	//write
-	uint32_t writeAddress = 0x10000;  // First address of second block of 64KB
-	uint8_t data[] = {pressureSamples};
-	uint32_t dataSize = sizeof(data);
-	if (BSP_QSPI_Write(data, writeAddress, dataSize) != QSPI_OK) {
-		Error_Handler();
-	}
-
-  }
   /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartTaskBtnInput */
 /**
-* @brief Function implementing the taskBtnInput thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the taskBtnInput thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartTaskBtnInput */
 void StartTaskBtnInput(void const * argument)
 {
   /* USER CODE BEGIN StartTaskBtnInput */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-    //task that determines when the button has been pressed,
-    //and changes the mode of the application to output data
-    //from the next sensor in the sequence;
-    if (buttonPressed==1){
-    	currentSensor = (currentSensor + 1) % numSensors;// Increment the currentSensor variable and wrap around
-    	buttonPressed=0;
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(100);
+        // task that determines when the button has been pressed,
+        // and changes the mode of the application to output data
+        // from the next sensor in the sequence;
+        if (buttonPressed == 1)
+        {
+            currentSensor = (currentSensor + 1) % numSensors; // Increment the currentSensor variable and wrap around
+            buttonPressed = 0;
+
+            if(currentSensor == 0){
+				samples = 0;
+				statsPrinted = 0;
+            }
+        }
     }
-  }
   /* USER CODE END StartTaskBtnInput */
 }
 
 /* USER CODE BEGIN Header_StartTaskTransmit */
 /**
-* @brief Function implementing the taskTransmit thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the taskTransmit thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartTaskTransmit */
 void StartTaskTransmit(void const * argument)
 {
   /* USER CODE BEGIN StartTaskTransmit */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-//    ======Part 2==========
-//    task that transmits this data to the terminal using the virtual com port UART; and,
-//      char* msg = calloc(1, sizeof(char) * 100);
-//	  switch (currentSensor) {
-//		  case 0:
-//			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
-//			  break;
-//		  case 1:
-//			  sprintf(msg, "The Pressure is: %.2f\r\n", pressure);
-//			  break;
-//		  case 2:
-//			  sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
-//			  break;
-//		  case 3:
-//			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
-//			  break;
-//		  default:
-//			  sprintf(msg, "Wrong sensor");
-//
-//
-//	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-//
-//	  HAL_Delay(500);
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(500);
+        //    ======Part 2==========
+        // task that transmits this data to the terminal using the virtual com port UART;
+        // and,
+        char *msg = calloc(1, sizeof(char) * 1000);
+        switch (currentSensor)
+        {
+        case 0:
+            sprintf(msg, "The Temperature is: %d\r\n", (int)temperature);
+            break;
+        case 1:
+            sprintf(msg, "The Pressure is: %d\r\n", (int)pressure);
+            break;
+        case 2:
+            sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
+            break;
+        case 3:
+            sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
+            break;
+        // ======== PART 4 BEGIN ========
+        case 4:
+        	if(!statsPrinted){
+				computeStatistics(msg);
+				statsPrinted = 1;
+        	}
+        	break;
+		// ========= PART 4 END =========
+        default:
+            sprintf(msg, "Wrong sensor");
+        }
 
-
-    //==========Part 4=========
-    //read from flash and calculate statistics:
-
-	uint32_t readAddress = 0x00000;  // Replace with the address from where you want to read data
-	int16_t readData[100];  // Adjust the array size according to your data size
-	if (BSP_QSPI_Read(readData, readAddress, sizeof(readData)) != QSPI_OK) {
-		Error_Handler();
-	}
-	float readTemperatureSamples[100];
-	 for (int i = 0; i < 5; i++) {
-		 readTemperatureSamples[i] = readData[i]/1000; //divide by 1000 to get the float back
-	    }
-
-
-	  switch (currentSensor) {
-		  case 0:
-			  sprintf(msg, "The Temperature is: %.2f\r\n", temperature);
-			  break;
-		  case 1:
-			  sprintf(msg, "The Pressure is: %.2f\r\n", pressure);
-			  break;
-		  case 2:
-			  sprintf(msg, "The Accelerometer values are: X: %d, Y: %d, Z: %d\r\n", acceleroData[0], acceleroData[1], acceleroData[2]);
-			  break;
-		  case 3:
-			  sprintf(msg, "The Magnetometer values are: X: %d, Y: %d, Z: %d\r\n", magnetoData[0], magnetoData[1], magnetoData[2]);
-			  break;
-		  case 4: //Part 4 summary statistics
-			  sprintf(msg, "Summary Statistics:\r\n > Temperature: number of samples: %d, sample mean: %.2f, sample variance: %.2f.\r\n> Pressure: number of samples: %d, sample mean: %.2f, sample variance: %.2f.\r\n> Accelerometer: number of samples: %d, sample mean x: %.2f | y: %.2f | z: %.2f, sample variance x: %.2f | y: %.2f | z: %.2f.\r\n> Magnetometer: number of samples: %d, sample mean x: %.2f | y: %.2f | z: %.2f, sample variance x: %.2f | y: %.2f | z: %.2f.\r\n");
-			  break;
-		  default:
-			  sprintf(msg, "Wrong sensor");
-
-
-	  HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-
-	  HAL_Delay(500);
-
-
-  }
+        HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+    }
 
   /* USER CODE END StartTaskTransmit */
 }
@@ -702,14 +765,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-	  AL_GPIO_WritePin(LEDError_GPIO_Port, LEDError_Pin, GPIO_PIN_RESET);
-	  __BKPT();
-
-  }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1)
+    {
+        HAL_GPIO_WritePin(LEDError_GPIO_Port, LEDError_Pin, GPIO_PIN_RESET);
+        __BKPT();
+    }
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -724,8 +786,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* User can add his own implementation to report the file name and line number,
+       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
